@@ -1,0 +1,51 @@
+import warnings
+
+import peewee as pw
+import sqlfluff
+from peewee import query_to_string  # type: ignore
+
+
+def dialect(database: pw.Database) -> str | None:
+    """Highlight using a closest match dialect"""
+    match database:
+        case pw.PostgresqlDatabase():
+            return "postgres"
+        case pw.MySQLDatabase():
+            return "mysql"
+        case pw.SqliteDatabase():
+            return "sqlite"
+        case _:
+            msg = f"Database dialect '{type(database)}' not supported, falling back to base SQL."
+            warnings.warn(msg, stacklevel=1)
+    return None
+
+
+def render(query: pw.Query) -> str:
+    """Render query."""
+    q = query_to_string(query)
+    if not q:
+        msg = f"Could not render query {query}"
+        raise ValueError(msg)
+
+    return sqlfluff.fix(
+        q,
+        rules=["capitalisation", "layout", "structure"],
+        exclude_rules=["LT12", "RF06"],
+        fix_even_unparsable=True,
+    )
+
+
+def lint_query(query: pw.Query, database: pw.Database) -> tuple[str, list[dict[str, str]]]:
+    """Wrapper linting executed query."""
+    s = render(query)
+    f = sqlfluff.lint(
+        s,
+        dialect=dialect(database),
+        rules=["all"],
+        exclude_rules=[
+            "CP01",  # Capitalization
+            "LT12",  # Newline at end
+            "RF06",  # Quoted identifier
+        ],
+    )
+    return s, f

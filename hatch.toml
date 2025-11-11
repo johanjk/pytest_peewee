@@ -1,0 +1,62 @@
+[envs.default]
+dependencies = [
+  "coverage[toml]>=6.5",
+  "pytest>=9.0.0",
+  "mktestdocs",
+  "deptry",
+]
+post-install-commands = [
+  """uv pip install {verbosity:flag:-1} \
+    -r src/requirements.txt \
+    -r src/tests/requirements.txt""",
+]
+
+[envs.default.scripts]
+setup = "./dev.sh"
+teardown = "./dev.sh stop"
+test = "pytest {args:src/tests}"
+test-cov = "coverage run -m pytest {args: {root}/src/tests}"
+cov-report = [
+  "- coverage combine",
+  "coverage report",
+]
+cov = [
+  "test-cov",
+  "cov-report",
+]
+req = "deptry {args: {root}/src/pytest_peewee}"
+
+[envs.default.env-vars]
+DBDRIVER = "psycopg3"
+DBHOST = "127.0.0.1"
+DBPORT = "30000"
+DBDATABASE = "test_db"
+DBUSER = "dbuser"
+DBPASSWORD = "secret"
+
+[envs.all.env-vars]
+# unset defaults
+
+[envs.all.overrides]
+matrix.db.env-vars = [
+  { key = "DBDRIVER", value = "psycopg3", if = ["postgresql"] },
+  { key = "DBHOST", value = "127.0.0.1", if = ["postgresql"]},
+  { key = "DBPORT", value = "30000", if = ["postgresql"]},
+  { key = "DBDATABASE", value = "test_db", if = ["postgresql"]},
+  { key = "DBUSER", value = "dbuser", if = ["postgresql"]},
+  { key = "DBPASSWORD", value = "secret", if = ["postgresql"]},
+]
+
+[[envs.all.matrix]]
+python = ["3.12", "3.13", "3.14"]
+db = ["postgresql", "default"]
+
+[envs.types]
+dependencies = [
+  "mypy>=1.0.0",
+  "pyright",
+]
+[envs.types.scripts]
+check = "pyright {args: {root}/src/pytest_peewee src/tests}"
+check-mypy = "mypy --install-types --non-interactive {args: {root}/src/pytest_peewee}"
+verify = "pyright --verifytypes pytest_peewee --ignoreexternal {args}"

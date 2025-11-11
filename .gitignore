@@ -1,0 +1,34 @@
+# git
+*.orig
+
+# python
+**/__pycache__/**/*
+**/.mypy_cache/**/*
+.cache
+.pyc
+*.egg-info
+report.html
+
+# mac OS
+**/.DS_Store
+
+# pytest
+.pytest_cache
+.coverage
+.coverage.*
+htmlcov/
+
+## editors
+# pycharm
+.idea/
+
+# sublime
+*.sublime-*
+
+# vscode
+.vscode/
+*.code-workspace
+XDG_CACHE_HOME/
+
+#hatch
+/dist

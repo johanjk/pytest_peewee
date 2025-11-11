@@ -1,0 +1,142 @@
+from collections.abc import Iterator
+
+import peewee as pw
+import playhouse.db_url as pwdb_url
+import pydantic
+import pytest
+
+from .kwargs import Database, HostSpecBlock, UserSpec
+from .parse_env import parse_env
+
+type sdict = dict[str, str]  # noqa: PYI042
+
+
+@pytest.fixture(scope="module")
+def database_default_kwargs() -> Iterator[sdict]:
+    """Defaults when env vars are not set."""
+    yield {
+        "dbtype":   "sqlite",
+        "database": ":memory:",
+    }
+
+
+@pytest.fixture(scope="module")
+def database_default_envvar() -> Iterator[sdict]:
+    """Defaults allowed to be loaded from environment variables."""
+    yield {
+        "dbtype":   "$DBDRIVER",
+        "host":     "$DBHOST",
+        "port":     "$DBPORT",
+        "database": "$DBDATABASE",
+        "user":     "$DBUSER",
+        "password": "$DBPASSWORD",
+    }
+
+
+@pytest.fixture(scope="module")
+def database_params() -> Iterator[sdict]:
+    """'?' params to Database constructor."""
+    yield {}
+
+
+@pytest.fixture(scope="module")
+def database_kwargs(database_default_envvar: sdict, database_default_kwargs: sdict) -> Iterator[sdict]:
+    """Merges env and defaults."""
+    kwargs = parse_env(database_default_envvar)
+    yield database_default_kwargs | {
+        k: v for k, v in kwargs.items() if v
+    }
+
+
+@pytest.fixture(scope="module")
+def database_string(database_kwargs: sdict, database_params: sdict) -> Iterator[str]:
+    """A peewee database string.
+
+    as defined in: http://docs.peewee-orm.com/en/latest/peewee/playhouse.html#db-url
+
+    Defaults to 'sqlite:///:memory:', unless 'database_default_kwargs' is overridden, or default env vars were set.
+    Override to match your underlying database.
+    """
+    if not database_kwargs:
+        msg = "Could not connect; no config found."
+        pytest.xfail(msg)
+        raise ValueError(msg)
+    try:
+        conn = None
+        cred = None
+        if database_kwargs["database"] != ":memory:":
+            conn = HostSpecBlock(host=database_kwargs.pop("host", None), port=database_kwargs.pop("port", None))
+            cred = UserSpec(user=database_kwargs.pop("user", None), password=database_kwargs.pop("password", None))
+
+        yield str(Database(conn=[conn] if conn else None, cred=cred,
+                           params=database_params, **database_kwargs))
+    except pydantic.ValidationError as err:
+        msg = f"Could not connect; Database '{database_kwargs}', {err.errors()}."
+        pytest.xfail(msg)
+        raise
+
+
+@pytest.fixture(scope="module")
+def setup_database(database_string: str) -> Iterator[pw.Database]:
+    """Initial database setup."""
+    kwargs = {}
+    if "sqlite" not in database_string:
+        kwargs = {
+            "application_name": "pytest-peewee",
+        }
+    try:
+        database = pwdb_url.connect(
+            database_string,
+            unquote_password=True,
+            **kwargs,
+        )
+    except (pw.DatabaseError, pw.OperationalError, RuntimeError) as err:
+        msg = f"Could not connect; Database '{database_string}'."
+        raise ValueError(msg) from err
+
+    try:
+        with database.atomic():
+            pass
+    except pw.OperationalError:
+        pytest.xfail(f"Could not connect; Database '{database_string}'.")
+
+    assert isinstance(database, pw.Database)
+
+    yield database
+
+
+@pytest.fixture(scope="function")
+def pre_hook_database(setup_database: pw.Database) -> Iterator[pw.Database]:
+    yield setup_database
+
+
+@pytest.fixture(scope="function")
+def post_hook_database(
+    pre_hook_database: pw.Database,
+    use_database,
+    query_helpers,
+    query_error,
+) -> Iterator[pw.Database]:
+    with (
+        use_database(pre_hook_database),
+        query_helpers(pre_hook_database),
+        query_error(pre_hook_database),
+    ):
+        yield pre_hook_database
+
+
+@pytest.fixture(scope="function")
+def pre_transaction_database(post_hook_database: pw.Database) -> Iterator[pw.Database]:
+    yield post_hook_database
+
+
+@pytest.fixture(scope="function")
+def post_transaction_database(pre_transaction_database: pw.Database, transaction) -> Iterator[pw.Database]:
+    with pre_transaction_database, transaction(pre_transaction_database):
+        yield pre_transaction_database
+
+
+@pytest.fixture(scope="function")
+def database(post_transaction_database: pw.Database) -> Iterator[pw.Database]:
+    """Function level database."""
+    yield post_transaction_database

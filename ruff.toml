@@ -1,0 +1,26 @@
+[lint]
+ignore = [
+  "TID252", # relative import
+  "E731", # inline lambda
+  "FA102", # FA102 python <3.10 support
+  "PT022", # yielding fixtures
+  "FBT001", # boolean flags in args
+  "FBT002", # boolean flags in args
+  "A003", # shadow builtin (id table columns)
+  "S101", # use of assert
+  "PT003", # explicit 'function' scope fixtures
+]
+[lint.per-file-ignores]
+"src/pytest_peewee/__init__.py" = [
+  "F401", # unused imports
+]
+"src/tests/**/*.py" = [
+  "S101", # asserts allowed in tests...
+  "ARG", # Unused function args -> fixtures nevertheless are functionally relevant...
+  "FBT", # Don't care about booleans as positional arguments in tests, e.g. via @pytest.mark.parametrize()
+  "PLR2004", # Magic value used in comparison, ...
+  "S311", # Standard pseudo-random generators are not suitable for cryptographic purposes
+  "SLF001", # private member accessed
+  "T201", # print statement
+  "S608", # sql injection
+]

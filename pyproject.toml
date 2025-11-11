@@ -1,0 +1,152 @@
+[project]
+name = "pytest-peewee"
+dynamic = ["version"]
+description = 'Pytest testing extensions for Peewee.'
+readme = "README.md"
+requires-python = ">=3.12"
+license = "MIT"
+keywords = [
+  "test",
+  "unittest",
+  "peewee",
+  "pytest",
+]
+authors = [
+  { name = "johanjk", email = "johan@datarokade.com" },
+]
+maintainers = [
+  { name = "johanjk", email = "johan@datarokade.com" },
+]
+classifiers = [
+  "Development Status :: 4 - Beta",
+
+  "License :: OSI Approved :: MIT License",
+  "Framework :: Pytest",
+  "Operating System :: OS Independent",
+  "Intended Audience :: Developers",
+
+  "Programming Language :: Python",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Programming Language :: Python :: 3.14",
+]
+dependencies = [
+  "peewee>=3.13.3",
+  "pytest>=6.1.2",
+  "sqlfluff>=3.5.0",
+  "pydantic>=2.5.2",
+  "rich>=14.2.0",
+]
+[dependency-groups]
+test = [
+  "coverage[toml]>=6.5",
+  "pytest>=9.0.0",
+  "mktestdocs",
+]
+dev = [
+  "types-peewee",
+]
+
+
+[project.urls]
+Documentation = "https://github.com/johanjk/pytest_peewee#readme"
+Issues = "https://github.com/johanjk/pytest_peewee/issues"
+Source = "https://github.com/johanjk/pytest_peewee"
+
+[project.entry-points.pytest11]
+peewee = "pytest_peewee"
+
+[build-system]
+requires = [
+  "hatchling",
+  "hatch-vcs",
+]
+build-backend = "hatchling.build"
+
+[tool.hatch.version]
+source = "vcs"
+
+[tool.hatch.build.hooks.vcs]
+version-file = "src/pytest_peewee/version.py"
+
+[tool.hatch.build]
+sources = ["src"]
+exclude = [
+  "/.github",
+]
+only-packages = true
+skip-excluded-dirs = true
+
+[tool.coverage.run]
+source_pkgs = ["pytest_peewee", "tests"]
+branch = true
+parallel = true
+omit = [
+  "src/pytest_peewee/version.py",
+  "**/site-packages/**",
+  "/tmp/**",
+  "src/tests/*",
+]
+
+[tool.coverage.paths]
+pytest_peewee = ["src/pytest_peewee"]
+tests = ["src/tests"]
+
+[tool.coverage.report]
+omit = [
+  "*/__init__.py",
+  "**/_pytest/*",
+]
+exclude_lines = [
+  "pragma: no cover",
+  "def __repr__",
+  "if self.debug:",
+  "if settings.DEBUG",
+  "raise AssertionError",
+  "raise NotImplementedError",
+  "if 0:",
+  "import",
+  "__version__",
+  "no cov",
+  "if __name__ == .__main__.:",
+  "if TYPE_CHECKING:",
+]
+
+[tool.pytest]
+generate_report_on_test = true
+addopts = [
+  "-ra",
+  "--strict-markers",
+  "--strict-config",
+  "--color=yes",
+  "--html=./report.html",
+  "--self-contained-html",
+  "--no-header",
+]
+testpaths = ["src/tests"]
+filterwarnings = ["once::Warning"]
+
+
+[tool.pydantic-mypy]
+init_forbid_extra = true
+init_typed = true
+warn_required_dynamic_aliases = true
+
+
+[tool.pyright]
+include = ["src/pytest_peewee"]
+exclude = [
+  "src/pytest_peewee/version.py",
+  "**/tests/**",
+]
+pythonVersion = "3.12"
+typeCheckingMode = "strict"
+reportUnusedImport = false
+deprecateTypingAliases = true
+reportImplicitOverride = true
+reportMissingSuperCall = true
+reportPropertyTypeMismatch = true
+reportImplicitStringConcatenation = true
+
+[tool.deptry]
+requirements_files = ["src/requirements.txt", "src/tests/requirements.txt"]
