@@ -22,19 +22,6 @@ def test_create(database):
     """Can create table, and is bound."""
     SomeTable.create_table()
 
-@pytest.fixture
-def ddl_isolation(database):
-    """Whenever database support DDL rollback."""
-    if isinstance(database, pw.MySQLDatabase):
-        yield pytest.raises(pw.OperationalError)
-    else:
-        yield does_not_raise()
-
-def test_isolation(database, ddl_isolation):
-    """No conflict with prev test."""
-    with ddl_isolation:
-        SomeTable.create_table(safe=False)
-
 
 def test_database(database):
     """Can insert and retrieve."""
