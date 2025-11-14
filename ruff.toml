@@ -1,8 +1,18 @@
+preview = true
+output-format = "grouped"
+
+target-version = "py313"
+
+[lint.pydocstyle]
+convention = "google"
+
 [lint]
+select = ["D"]
 ignore = [
+  "D100", # module level docstring
+  "D104", # package level docstring
   "TID252", # relative import
   "E731", # inline lambda
-  "FA102", # FA102 python <3.10 support
   "PT022", # yielding fixtures
   "FBT001", # boolean flags in args
   "FBT002", # boolean flags in args

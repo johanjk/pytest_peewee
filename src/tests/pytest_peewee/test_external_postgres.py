@@ -6,6 +6,7 @@ pytest.importorskip("psycopg")
 
 @pytest.fixture(scope="module")
 def database_string():
+    """Hardcoded same as default test env is expected to generate."""
     yield "psycopg3://{user}:{password}@{host}:{port}/{database}".format(
         user="dbuser",
         password="secret",  # noqa: S106

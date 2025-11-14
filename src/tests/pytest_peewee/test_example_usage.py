@@ -2,7 +2,7 @@ import peewee as pw
 import pytest
 
 
-class SomeTable(pw.Model):
+class SomeTable(pw.Model):  # noqa: D101
     x = pw.IntegerField()
 
 
@@ -82,7 +82,7 @@ def test_bad_query(database):
 
 
 def test_query_without_bind(database):
-    """Raw queries does not have to be bound"""
+    """Raw queries does not have to be bound."""
     q = pw.RawQuery("SELECT 1").tuples()
     assert list(q.execute()) == [(1,)]
 

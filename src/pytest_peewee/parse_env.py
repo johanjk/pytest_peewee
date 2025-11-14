@@ -11,6 +11,7 @@ def _env_replace(x: re.Match) -> str:
 
 
 def parse_env(args: dict) -> dict:
+    """Replace dict values that looks 'env-like' with env variables."""
     def inner(args):
         for i, value in args.items():
             if isinstance(value, dict):

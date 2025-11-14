@@ -7,7 +7,9 @@ import pytest
     "sqheavy",
 ])
 def database_string(request):
+    """Useless database strings."""
     yield request.param
 
 def test_exception(database):
+    """Expected to crash."""
     pass

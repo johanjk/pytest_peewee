@@ -10,6 +10,7 @@ def test_fixtures(
 
 
 def has_helper(exp: bool) -> pw.Query:
+    """Lookup hooks on a simple query."""
     q = pw.Select(columns=[pw.Value(1)])
     assert hasattr(q, "print") == exp
     assert hasattr(q, "lint") == exp
@@ -41,13 +42,16 @@ def test_fixture_database(
     "query_helpers",
 ])
 def hooks(request):
+    """Fixtures that contain monkeypatches."""
     yield request.param
 
 
 def test_no_hooks(request, pre_hook_database, hooks):
+    """No hooks active before 'post_hook_database'."""
     assert hooks not in request.fixturenames
 
 
 def test_hooks(request, post_hook_database, hooks):
+    """Hooks active after 'post_hook_database'."""
     assert hooks in request.fixturenames
     assert request.getfixturevalue(hooks)

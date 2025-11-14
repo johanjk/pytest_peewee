@@ -21,40 +21,50 @@ def highlight(s: str) -> Syntax:
 
 
 def caller_info(stacklevel: int):
+    """File and line info of caller."""
     caller = getframeinfo(stack()[stacklevel][0])
     style = Style(color="red")
     return Text.assemble(Text(caller.filename, style), ":", str(caller.lineno))
 
 
 def print_query(query: pw.Query, stacklevel: int | None = 1):
+    """Pretty print a query."""
     d = highlight(fmt.render(query))
     if stacklevel is not None:
         d = Group(
             d,
-            caller_info(stacklevel+1),
+            caller_info(stacklevel + 1),
         )
     console().print(Panel(d))
 
 
+def highlight_lint(s: Syntax, warns: list[dict[str, int]]) -> None:
+    """Highlight area of linting errors."""
+    style = Style(bgcolor="red")
+    for w in warns:
+        start = (
+            w["start_line_no"],
+            w["start_line_pos"] - 1,
+        )
+        end = (
+            w["end_line_no"],
+            w["end_line_pos"] - 1,
+        )
+        s.stylize_range(style, start=start, end=end)
+
+
 def print_lint(query: pw.Query, database: pw.Database) -> bool:
+    """Pretty print a query and possible linting errors."""
     s, f = fmt.lint_query(query, database)
     if not f:
         return True
 
     s = highlight(s)
-    style = Style(bgcolor="red")
-    for x in f:
-        start = (
-            x["start_line_no"],
-            x["start_line_pos"]-1,
-        )
-        end = (
-            x["end_line_no"],
-            x["end_line_pos"]-1,
-        )
-        s.stylize_range(style, start=start, end=end)
+    highlight_lint(s, f)
 
     errs = dict.fromkeys((x["code"], x["description"]) for x in f)
+    # remove duplicate msgs
+
     style = Style(color="red")
     errs = Lines(Text.assemble(Text(x[0], style=style), ": ", x[1]) for x in errs)
     console().print(Panel(Group(s, errs)))

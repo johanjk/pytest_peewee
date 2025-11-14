@@ -1,0 +1,5 @@
+[default.extend-identifiers]
+# inherited typos from upstream
+changeOccured = "changeOccured"
+# package syntax
+to_string_ser_schema = "to_string_ser_schema"

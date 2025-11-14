@@ -13,7 +13,10 @@ type sdict = dict[str, str]  # noqa: PYI042
 
 @pytest.fixture(scope="module")
 def database_default_kwargs() -> Iterator[sdict]:
-    """Defaults when env vars are not set."""
+    """Defaults database connection kwargs when env vars are not set.
+
+    Defaults to sqlite memory.
+    """
     yield {
         "dbtype":   "sqlite",
         "database": ":memory:",
@@ -22,7 +25,11 @@ def database_default_kwargs() -> Iterator[sdict]:
 
 @pytest.fixture(scope="module")
 def database_default_envvar() -> Iterator[sdict]:
-    """Defaults allowed to be loaded from environment variables."""
+    """Connection kwargs with env var support.
+
+    Takes precedence over 'database_default_kwargs'.
+    Is allowed to be loaded from environment variables. the syntax is "$ENV_VAR_NAME".
+    """
     yield {
         "dbtype":   "$DBDRIVER",
         "host":     "$DBHOST",
@@ -35,13 +42,13 @@ def database_default_envvar() -> Iterator[sdict]:
 
 @pytest.fixture(scope="module")
 def database_params() -> Iterator[sdict]:
-    """'?' params to Database constructor."""
+    """Extra database connection params appended as '?' params to Database constructor."""
     yield {}
 
 
 @pytest.fixture(scope="module")
 def database_kwargs(database_default_envvar: sdict, database_default_kwargs: sdict) -> Iterator[sdict]:
-    """Merges env and defaults."""
+    """Realizes env vars and merges env and defaults."""
     kwargs = parse_env(database_default_envvar)
     yield database_default_kwargs | {
         k: v for k, v in kwargs.items() if v
@@ -50,12 +57,12 @@ def database_kwargs(database_default_envvar: sdict, database_default_kwargs: sdi
 
 @pytest.fixture(scope="module")
 def database_string(database_kwargs: sdict, database_params: sdict) -> Iterator[str]:
-    """A peewee database string.
+    """Builds the peewee database string.
 
     as defined in: http://docs.peewee-orm.com/en/latest/peewee/playhouse.html#db-url
 
     Defaults to 'sqlite:///:memory:', unless 'database_default_kwargs' is overridden, or default env vars were set.
-    Override to match your underlying database.
+    Can be overridden to match your underlying database, but using env or defaults is preferable.
     """
     if not database_kwargs:
         msg = "Could not connect; no config found."
@@ -78,7 +85,7 @@ def database_string(database_kwargs: sdict, database_params: sdict) -> Iterator[
 
 @pytest.fixture(scope="module")
 def setup_database(database_string: str) -> Iterator[pw.Database]:
-    """Initial database setup."""
+    """Realizes initial database object."""
     kwargs = {}
     if "sqlite" not in database_string:
         kwargs = {
@@ -107,6 +114,10 @@ def setup_database(database_string: str) -> Iterator[pw.Database]:
 
 @pytest.fixture(scope="function")
 def pre_hook_database(setup_database: pw.Database) -> Iterator[pw.Database]:
+    """Database before hooks are active.
+
+    Use with caution, as rollback helpers and database auto-selector is not yet active.
+    """
     yield setup_database
 
 
@@ -117,6 +128,7 @@ def post_hook_database(
     query_helpers,
     query_error,
 ) -> Iterator[pw.Database]:
+    """Adds database auto-selector and query helpers."""
     with (
         use_database(pre_hook_database),
         query_helpers(pre_hook_database),
@@ -127,11 +139,16 @@ def post_hook_database(
 
 @pytest.fixture(scope="function")
 def pre_transaction_database(post_hook_database: pw.Database) -> Iterator[pw.Database]:
+    """Database before rollback helper is active.
+
+    Use with caution, as rollback helpers is not yet active.
+    """
     yield post_hook_database
 
 
 @pytest.fixture(scope="function")
 def post_transaction_database(pre_transaction_database: pw.Database, transaction) -> Iterator[pw.Database]:
+    """Open database with active auto-rollback transaction."""
     with pre_transaction_database, transaction(pre_transaction_database):
         yield pre_transaction_database
 

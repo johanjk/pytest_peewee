@@ -4,6 +4,7 @@ import pytest
 
 @pytest.fixture(scope="module")
 def database_string():
+    """Hardcoded invalid user."""
     yield "psycopg3://{user}:{password}@{host}:{port}/{database}".format(
         user="postgres",
         password="hunter2",  # noqa: S106

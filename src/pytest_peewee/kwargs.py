@@ -4,12 +4,12 @@ from urllib.parse import quote_plus, urlencode
 import pydantic
 
 
-class BaseModel(pydantic.BaseModel):
+class BaseModel(pydantic.BaseModel):  # noqa: D101
     model_config = pydantic.ConfigDict(frozen=True, extra="forbid")
 
 
 class UserSpec(BaseModel):
-    """
+    """Connecting user.
 
     User.
         user[:password]
@@ -24,7 +24,7 @@ class UserSpec(BaseModel):
 
 
 class HostSpecBlock(BaseModel):
-    """
+    """DB host.
 
     Single host.
         [host][:port][,...]
@@ -34,6 +34,7 @@ class HostSpecBlock(BaseModel):
 
     @pydantic.model_validator(mode="after")
     def check_host_or_port(self):
+        """Require host or port."""
         if not self.host and not self.port:
             msg = "either 'host' or 'port' is required"
             raise ValueError(msg)
@@ -60,7 +61,7 @@ class Database(BaseModel):
 
     @override
     def __str__(self):
-        """
+        """Build connection string.
 
         postgresql://[userspec@][hostspec][/dbname][?paramspec]
             user[:password]

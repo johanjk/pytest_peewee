@@ -6,7 +6,7 @@ from peewee import query_to_string  # type: ignore
 
 
 def dialect(database: pw.Database) -> str | None:
-    """Highlight using a closest match dialect"""
+    """Highlight using a closest match dialect."""
     match database:
         case pw.PostgresqlDatabase():
             return "postgres"

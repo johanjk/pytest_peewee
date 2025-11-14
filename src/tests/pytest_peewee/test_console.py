@@ -2,18 +2,19 @@ import peewee as pw
 import pytest
 
 
-class OtherTable(pw.Model):
+class OtherTable(pw.Model):  # noqa: D101
     x = pw.IntegerField()
     y = pw.TextField()
 
 
 @pytest.fixture(scope="function")
-def database(database):
+def database(database):  # noqa: D103
     OtherTable.create_table()
     yield database
 
 
 def maybe_bad_query(fail: bool) -> pw.Query:
+    """Query with possible wrong selector."""
     a = OtherTable.alias("sq")
     subq = a.select(a.x)
 
@@ -43,6 +44,7 @@ def test_query_lint_err(capsys, database):
 
 
 def test_print(capsys, database):
+    """Check output is close to the expected query (color matching is not attempted)."""
     maybe_bad_query(False).print()
 
     stdout = capsys.readouterr().out
@@ -63,4 +65,5 @@ def test_print(capsys, database):
     ╰──────────────────────────────────────────────────────────────────────────────╯
     """
     assert __file__ in stdout
-    assert len(stdout.split("\n")) == len(exp.split("\n"))
+    assert len(stdout.split("\n")) >= len(exp.split("\n"))
+    # can be larger if filepath is longer than terminal width

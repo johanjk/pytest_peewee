@@ -1,10 +1,12 @@
+from collections.abc import Iterator
 from pathlib import Path
 
 import pytest
 
 
 @pytest.fixture(scope="session")
-def pytester_tests():
+def pytester_tests() -> Iterator[Path]:
+    """Location of pytester files."""
     yield Path(__file__).parent / "tester"
 
 

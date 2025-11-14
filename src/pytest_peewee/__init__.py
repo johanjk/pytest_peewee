@@ -1,3 +1,5 @@
+"""pytest-peewee: pytest extensions for peewee."""
+
 from .plugin import (
     database,
     database_default_envvar,

@@ -9,4 +9,5 @@ from mktestdocs import check_md_file  # type: ignore[import-untyped]
     *pathlib.Path("./docs").glob("**/*.md")
 ], ids=str)
 def test_readme(fpath):
+    """Make sure README code is parsable."""
     check_md_file(fpath=fpath, memory=True)
