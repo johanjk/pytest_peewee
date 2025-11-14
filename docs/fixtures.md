@@ -6,7 +6,7 @@ Available fixtures:
 ```python
 def test_fixutures(
     database_default_kwargs,
-    database_envvar,
+    database_default_envvar,
     database_kwargs,
     database_params,
     database_string,
@@ -30,7 +30,7 @@ def test_fixutures(
 ```mermaid
 flowchart TD;
   DDK["database_default_kwargs"];
-  DE["database_envvar"];
+  DE["database_default_envvar"];
   DK["database_kwargs"];
   DP["database_params"];
   DS["database_string"];

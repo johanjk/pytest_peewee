@@ -27,13 +27,17 @@ Extensions to the Python SQL ORM [Peewee](https://github.com/coleifer/peewee/).
 To initialize tables, override `database` as follows:
 
 ```python
+import peewee as pw
 import pytest
+
+class Table(pw.Model):
+    field = pw.IntegerField()
 
 @pytest.fixture
 def database(database):
     Table.create_table()
     yield database
-    # can drop tables here, but not necessary, as transaction will be rolled back
+    # drop tables here, if using mysql
     Table.drop_table()
 ```
 
