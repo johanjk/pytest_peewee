@@ -45,6 +45,8 @@ test = [
 ]
 dev = [
   "types-peewee",
+  "psycopg",
+  "pymysql",
 ]
 
 

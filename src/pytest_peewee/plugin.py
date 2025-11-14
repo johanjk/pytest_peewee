@@ -41,18 +41,25 @@ def database_default_envvar() -> Iterator[sdict]:
 
 
 @pytest.fixture(scope="module")
-def database_params() -> Iterator[sdict]:
-    """Extra database connection params appended as '?' params to Database constructor."""
-    yield {}
-
-
-@pytest.fixture(scope="module")
 def database_kwargs(database_default_envvar: sdict, database_default_kwargs: sdict) -> Iterator[sdict]:
     """Realizes env vars and merges env and defaults."""
     kwargs = parse_env(database_default_envvar)
     yield database_default_kwargs | {
         k: v for k, v in kwargs.items() if v
     }
+
+
+@pytest.fixture(scope="module")
+def database_params(database_kwargs) -> Iterator[sdict]:
+    """Extra database connection params appended as '?' params to Database constructor."""
+    name = "pytest-peewee"
+    match database_kwargs["dbtype"].split('+')[0]:
+        case "mysql":
+            yield {"program_name": name}
+        case ("postgres", "postgresql", "psycopg3"):
+            yield {"application_name": name}
+        case _:
+            yield {}
 
 
 @pytest.fixture(scope="module")
@@ -86,16 +93,10 @@ def database_string(database_kwargs: sdict, database_params: sdict) -> Iterator[
 @pytest.fixture(scope="module")
 def setup_database(database_string: str) -> Iterator[pw.Database]:
     """Realizes initial database object."""
-    kwargs = {}
-    if "sqlite" not in database_string:
-        kwargs = {
-            "application_name": "pytest-peewee",
-        }
     try:
         database = pwdb_url.connect(
             database_string,
             unquote_password=True,
-            **kwargs,
         )
     except (pw.DatabaseError, pw.OperationalError, RuntimeError) as err:
         msg = f"Could not connect; Database '{database_string}'."
@@ -149,7 +150,7 @@ def pre_transaction_database(post_hook_database: pw.Database) -> Iterator[pw.Dat
 @pytest.fixture(scope="function")
 def post_transaction_database(pre_transaction_database: pw.Database, transaction) -> Iterator[pw.Database]:
     """Open database with active auto-rollback transaction."""
-    with pre_transaction_database, transaction(pre_transaction_database):
+    with pre_transaction_database.connection_context(), transaction(pre_transaction_database):
         yield pre_transaction_database
 
 

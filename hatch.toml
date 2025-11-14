@@ -40,17 +40,29 @@ DBPASSWORD = "secret"
 
 [envs.all.overrides]
 matrix.db.env-vars = [
+  # postgres
   { key = "DBDRIVER", value = "psycopg3", if = ["postgresql"] },
   { key = "DBHOST", value = "127.0.0.1", if = ["postgresql"]},
   { key = "DBPORT", value = "30000", if = ["postgresql"]},
   { key = "DBDATABASE", value = "test_db", if = ["postgresql"]},
   { key = "DBUSER", value = "dbuser", if = ["postgresql"]},
   { key = "DBPASSWORD", value = "secret", if = ["postgresql"]},
+  # mysql
+  { key = "DBDRIVER", value = "mysql", if = ["mysql"] },
+  { key = "DBHOST", value = "127.0.0.1", if = ["mysql"]},
+  { key = "DBPORT", value = "30001", if = ["mysql"]},
+  { key = "DBDATABASE", value = "test_db", if = ["mysql"]},
+  { key = "DBUSER", value = "dbuser", if = ["mysql"]},
+  { key = "DBPASSWORD", value = "secret", if = ["mysql"]},
+]
+matrix.db.dependencies = [
+    { value = "psycopg", if = ["postgresql"]},
+    { value = "PyMySQL", if = ["mysql"]},
 ]
 
 [[envs.all.matrix]]
 python = ["3.12", "3.13", "3.14"]
-db = ["postgresql", "default"]
+db = ["postgresql", "default", "mysql"]
 
 [envs.types]
 dependencies = [

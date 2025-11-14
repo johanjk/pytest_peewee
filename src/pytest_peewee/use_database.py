@@ -31,7 +31,7 @@ def query_helpers(monkeypatch) -> Callable[[pw.Database], AbstractContextManager
     @contextmanager
     def func(database):
         lint = lambda x: console.print_lint(x, database)
-        prnt = lambda x, stacklevel=1: console.print_query(x, stacklevel + 1 if stacklevel is not None else None)
+        prnt = lambda x, stacklevel=1: console.print_query(x, database, stacklevel + 1 if stacklevel is not None else None)
         with monkeypatch.context() as m:
             for clazz in (pw.Context, pw.Query):
                 m.setattr(clazz, "print", prnt, raising=False)

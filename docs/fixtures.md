@@ -46,6 +46,7 @@ flowchart TD;
   DDK --> DK;
   DE --> DK;
   DK --> DS;
+  DK --> DP;
   DP --> DS;
   DS --> SD;
 

@@ -20,7 +20,7 @@ def dialect(database: pw.Database) -> str | None:
     return None
 
 
-def render(query: pw.Query) -> str:
+def render(query: pw.Query, database: pw.Database) -> str:
     """Render query."""
     q = query_to_string(query)
     if not q:
@@ -29,15 +29,16 @@ def render(query: pw.Query) -> str:
 
     return sqlfluff.fix(
         q,
-        rules=["capitalisation", "layout", "structure"],
-        exclude_rules=["LT12", "RF06"],
+        dialect=dialect(database),
+        rules=["capitalisation", "layout", "structure", "LT05"],
+        exclude_rules=["CP01", "LT12", "RF06"],
         fix_even_unparsable=True,
     )
 
 
 def lint_query(query: pw.Query, database: pw.Database) -> tuple[str, list[dict[str, str]]]:
     """Wrapper linting executed query."""
-    s = render(query)
+    s = render(query, database)
     f = sqlfluff.lint(
         s,
         dialect=dialect(database),

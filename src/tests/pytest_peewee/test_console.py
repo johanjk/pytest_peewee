@@ -11,6 +11,7 @@ class OtherTable(pw.Model):  # noqa: D101
 def database(database):  # noqa: D103
     OtherTable.create_table()
     yield database
+    OtherTable.drop_table()
 
 
 def maybe_bad_query(fail: bool) -> pw.Query:
@@ -39,7 +40,15 @@ def test_query_lint_err(capsys, database):
 
     stdout = capsys.readouterr().out
     print(stdout)
-    assert "RF01" in stdout and "Reference '\"sq\".\"x\"'" in stdout  # noqa: PT018
+    match database:
+        case pw.PostgresqlDatabase():
+            assert "RF01" in stdout and "Reference '\"sq\".\"x\"'" in stdout  # noqa: PT018
+        case pw.MySQLDatabase():
+            assert "RF01" in stdout and "Reference '`sq`.`x`'" in stdout  # noqa: PT018
+        case pw.SqliteDatabase():
+            assert "RF01" in stdout and "Reference '\"sq\".\"x\"'" in stdout  # noqa: PT018
+        case _:
+            assert False
     assert stdout.count(":") == 1  # Only one lint error
 
 

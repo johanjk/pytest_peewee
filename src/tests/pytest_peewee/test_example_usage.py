@@ -1,3 +1,5 @@
+from contextlib import nullcontext as does_not_raise
+
 import peewee as pw
 import pytest
 
@@ -20,10 +22,18 @@ def test_create(database):
     """Can create table, and is bound."""
     SomeTable.create_table()
 
+@pytest.fixture
+def ddl_isolation(database):
+    """Whenever database support DDL rollback."""
+    if isinstance(database, pw.MySQLDatabase):
+        yield pytest.raises(pw.OperationalError)
+    else:
+        yield does_not_raise()
 
-def test_isolation(database):
+def test_isolation(database, ddl_isolation):
     """No conflict with prev test."""
-    SomeTable.create_table(safe=False)
+    with ddl_isolation:
+        SomeTable.create_table(safe=False)
 
 
 def test_database(database):
@@ -76,6 +86,8 @@ def test_bad_query(database):
     assert txt != str(query)
     assert len(txt.split("\n")) == 2
     exp = 'SELECT "t1"."value" FROM (SELECT "t2"."id" FROM "sometable" AS "t2") AS "t1"'
+    if isinstance(database, pw.MySQLDatabase):
+        exp = exp.replace('"', '`')
     assert exp in txt
 
     assert query.lint()

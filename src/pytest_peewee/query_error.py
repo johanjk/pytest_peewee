@@ -17,10 +17,10 @@ def catch_execute_error(database: pw.Database):
         try:
             return func(query, *args, **kwargs)
         except pw.DatabaseError as err:
-            query_str = fmt.render(query)
+            query_str = fmt.render(query, database)
             ext = type(err)
             msg = f"Exception during query:\n{query_str}"
-            query.lint()
+            query.lint() and query.print()
             raise ext(msg) from err
 
     return execute
