@@ -50,6 +50,7 @@ def lint_query(query: pw.Query, database: pw.Database) -> tuple[str, list[dict[s
             "CP01",  # Capitalization
             "LT12",  # Newline at end
             "RF06",  # Quoted identifier
+            "CV04",  # Peewee prefers COUNT(1) over COUNT(*)
         ],
     )
     return s, f
