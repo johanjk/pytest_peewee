@@ -20,7 +20,6 @@ maintainers = [
 classifiers = [
   "Development Status :: 4 - Beta",
 
-  "License :: OSI Approved :: MIT License",
   "Framework :: Pytest",
   "Operating System :: OS Independent",
   "Intended Audience :: Developers",
@@ -71,12 +70,16 @@ source = "vcs"
 version-file = "src/pytest_peewee/version.py"
 
 [tool.hatch.build]
-sources = ["src"]
 exclude = [
   "/.github",
+  ".gitignore",
 ]
 only-packages = true
 skip-excluded-dirs = true
+[tool.hatch.build.targets.wheel]
+sources = ["src"]
+[tool.hatch.build.targets.sdist.force-include]
+"src/requirements.txt" = "src/requirements.txt"
 
 [tool.coverage.run]
 source_pkgs = ["pytest_peewee", "tests"]
