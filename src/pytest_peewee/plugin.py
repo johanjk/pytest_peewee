@@ -110,7 +110,9 @@ def setup_database(database_string: str) -> Iterator[pw.Database]:
 
     assert isinstance(database, pw.Database)
 
-    yield database
+    with database.connection_context():
+        # sqlite memory must stay open to not clear itself
+        yield database
 
 
 @pytest.fixture(scope="function")
@@ -150,7 +152,7 @@ def pre_transaction_database(post_hook_database: pw.Database) -> Iterator[pw.Dat
 @pytest.fixture(scope="function")
 def post_transaction_database(pre_transaction_database: pw.Database, transaction) -> Iterator[pw.Database]:
     """Open database with active auto-rollback transaction."""
-    with pre_transaction_database.connection_context(), transaction(pre_transaction_database):
+    with transaction(pre_transaction_database):
         yield pre_transaction_database
 
 

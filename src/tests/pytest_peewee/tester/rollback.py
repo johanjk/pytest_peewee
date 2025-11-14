@@ -13,7 +13,14 @@ def setup_database(setup_database):  # noqa: D103
 
     InterfereTable.create_table()
     yield setup_database
+    assert InterfereTable.table_exists()
     InterfereTable.drop_table()
+
+
+@pytest.fixture
+def database(database):  # noqa: D103
+    assert InterfereTable.table_exists()
+    yield database
 
 
 def count_number(num: int, pos: bool = True) -> int:
@@ -24,7 +31,6 @@ def count_number(num: int, pos: bool = True) -> int:
 
 def no_interference(num: int):
     """Table data should be rolled back."""
-    assert InterfereTable.table_exists()
     assert count_number(num) == 0
     assert count_number(num, False) == 0
     InterfereTable.insert(x=num).execute()
@@ -38,4 +44,4 @@ def test_insert_one(database):
 
 def test_insert_two(database):
     """Interference case."""
-    no_interference(0)
+    no_interference(2)
