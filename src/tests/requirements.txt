@@ -1,9 +1,5 @@
 coverage==7.11.3
-pytest-icdiff==0.9
+pytest==9.0.0
 pytest-html==4.1.1
-pytest-instafail==0.5.0
-pytest-incremental==0.6.0
-
 psycopg==3.2.12
-
 mktestdocs==0.2.2
