@@ -6,7 +6,10 @@ from peewee import query_to_string  # type: ignore
 
 
 def dialect(database: pw.Database) -> str | None:
-    """Highlight using a closest match dialect."""
+    """Format using a closest match dialect.
+
+    See: https://docs.sqlfluff.com/en/stable/reference/dialects.html
+    """
     match database:
         case pw.PostgresqlDatabase():
             return "postgres"

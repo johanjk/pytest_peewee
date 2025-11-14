@@ -35,9 +35,6 @@ DBDATABASE = "test_db"
 DBUSER = "dbuser"
 DBPASSWORD = "secret"
 
-[envs.all.env-vars]
-# unset defaults
-
 [envs.all.overrides]
 matrix.db.env-vars = [
   # postgres
@@ -54,6 +51,13 @@ matrix.db.env-vars = [
   { key = "DBDATABASE", value = "test_db", if = ["mysql"]},
   { key = "DBUSER", value = "dbuser", if = ["mysql"]},
   { key = "DBPASSWORD", value = "secret", if = ["mysql"]},
+  # sqlite
+  { key = "DBDRIVER", value = "", if = ["sqlite"] },
+  { key = "DBHOST", value = "", if = ["sqlite"]},
+  { key = "DBPORT", value = "", if = ["sqlite"]},
+  { key = "DBDATABASE", value = "", if = ["sqlite"]},
+  { key = "DBUSER", value = "", if = ["sqlite"]},
+  { key = "DBPASSWORD", value = "", if = ["sqlite"]},
 ]
 matrix.db.dependencies = [
     { value = "psycopg", if = ["postgresql"]},
@@ -62,7 +66,7 @@ matrix.db.dependencies = [
 
 [[envs.all.matrix]]
 python = ["3.12", "3.13", "3.14"]
-db = ["postgresql", "default", "mysql"]
+db = ["postgresql", "mysql", "sqlite"]
 
 [envs.types]
 dependencies = [

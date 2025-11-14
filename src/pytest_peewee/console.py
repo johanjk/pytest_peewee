@@ -1,3 +1,4 @@
+import warnings
 from inspect import getframeinfo, stack
 
 import peewee as pw
@@ -15,6 +16,24 @@ def console():
     return Console(color_system="truecolor")
 
 
+def dialect(database: pw.Database) -> str | None:
+    """Highlight using a closest match dialect.
+
+    See: https://pygments.org/languages/ for supported dialects
+    """
+    match database:
+        case pw.PostgresqlDatabase():
+            return "postgres"
+        case pw.MySQLDatabase():
+            return "mysql"
+        case pw.SqliteDatabase():
+            return None
+        case _:
+            msg = f"Database dialect '{type(database)}' not supported, falling back to base ANSI."
+            warnings.warn(msg, stacklevel=1)
+    return None
+
+
 def highlight(s: str, dialect: str | None = None) -> Syntax:
     """Colored syntax highlighting."""
     return Syntax(s, dialect or "SQL", line_numbers=("\n" in s), word_wrap=True)
@@ -29,7 +48,7 @@ def caller_info(stacklevel: int):
 
 def print_query(query: pw.Query, database: pw.Database, stacklevel: int | None = 1):
     """Pretty print a query."""
-    d = highlight(fmt.render(query, database), fmt.dialect(database))
+    d = highlight(fmt.render(query, database), dialect(database))
     if stacklevel is not None:
         d = Group(
             d,
@@ -59,7 +78,7 @@ def print_lint(query: pw.Query, database: pw.Database) -> bool:
     if not f:
         return True
 
-    s = highlight(s, fmt.dialect(database))
+    s = highlight(s, dialect(database))
     highlight_lint(s, f)
 
     errs = dict.fromkeys((x["code"], x["description"]) for x in f)
