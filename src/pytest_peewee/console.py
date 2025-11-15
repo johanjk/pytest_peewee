@@ -44,7 +44,7 @@ def caller_info(stacklevel: int) -> Text:
     """File and line info of caller."""
     caller = getframeinfo(stack()[stacklevel][0])
     style = Style(color="red")
-    return Text.assemble(Text(caller.filename, style), ":", str(caller.lineno))
+    return Text.assemble(Text(caller.filename, style), ":", str(caller.lineno), overflow="fold")
 
 
 def print_query(query: pw.Query, database: pw.Database, stacklevel: int | None = 1) -> None:
