@@ -1,12 +1,16 @@
 from collections.abc import Iterator
+from contextlib import AbstractContextManager
+from typing import cast
 
 import peewee as pw
-import playhouse.db_url as pwdb_url
+import playhouse.db_url as pwdb_url  # type: ignore[reportMissingTypeStubs]
 import pydantic
 import pytest
 
 from .kwargs import Database, HostSpecBlock, UserSpec
 from .parse_env import parse_env
+from .transaction import RollbackDatabase
+from .types import DatabaseCtx
 
 type sdict = dict[str, str]  # noqa: PYI042
 
@@ -43,20 +47,20 @@ def database_default_envvar() -> Iterator[sdict]:
 @pytest.fixture(scope="module")
 def database_kwargs(database_default_envvar: sdict, database_default_kwargs: sdict) -> Iterator[sdict]:
     """Realizes env vars and merges env and defaults."""
-    kwargs = parse_env(database_default_envvar)
+    kwargs = parse_env(database_default_envvar)  # type: ignore[reportArgumentType]
     yield database_default_kwargs | {
         k: v for k, v in kwargs.items() if v
     }
 
 
 @pytest.fixture(scope="module")
-def database_params(database_kwargs) -> Iterator[sdict]:
+def database_params(database_kwargs: sdict) -> Iterator[sdict]:
     """Extra database connection params appended as '?' params to Database constructor."""
     name = "pytest-peewee"
     match database_kwargs["dbtype"].split('+')[0]:
         case "mysql":
             yield {"program_name": name}
-        case ("postgres", "postgresql", "psycopg3"):
+        case "postgres" | "postgresql" | "psycopg3":
             yield {"application_name": name}
         case _:
             yield {}
@@ -79,8 +83,8 @@ def database_string(database_kwargs: sdict, database_params: sdict) -> Iterator[
         conn = None
         cred = None
         if database_kwargs["database"] != ":memory:":
-            conn = HostSpecBlock(host=database_kwargs.pop("host", None), port=database_kwargs.pop("port", None))
-            cred = UserSpec(user=database_kwargs.pop("user", None), password=database_kwargs.pop("password", None))
+            conn = HostSpecBlock(host=database_kwargs.pop("host", ""), port=database_kwargs.pop("port", None))
+            cred = UserSpec(user=database_kwargs.pop("user", ""), password=database_kwargs.pop("password", None))
 
         yield str(Database(conn=[conn] if conn else None, cred=cred,
                            params=database_params, **database_kwargs))
@@ -127,9 +131,9 @@ def pre_hook_database(setup_database: pw.Database) -> Iterator[pw.Database]:
 @pytest.fixture(scope="function")
 def post_hook_database(
     pre_hook_database: pw.Database,
-    use_database,
-    query_helpers,
-    query_error,
+    use_database: DatabaseCtx,
+    query_helpers: DatabaseCtx,
+    query_error: DatabaseCtx,
 ) -> Iterator[pw.Database]:
     """Adds database auto-selector and query helpers."""
     with (
@@ -150,13 +154,13 @@ def pre_transaction_database(post_hook_database: pw.Database) -> Iterator[pw.Dat
 
 
 @pytest.fixture(scope="function")
-def post_transaction_database(pre_transaction_database: pw.Database, transaction) -> Iterator[pw.Database]:
+def post_transaction_database(pre_transaction_database: pw.Database, transaction: DatabaseCtx) -> Iterator[RollbackDatabase]:
     """Open database with active auto-rollback transaction."""
     with transaction(pre_transaction_database):
-        yield pre_transaction_database
+        yield cast(RollbackDatabase, pre_transaction_database)
 
 
 @pytest.fixture(scope="function")
-def database(post_transaction_database: pw.Database) -> Iterator[pw.Database]:
+def database(post_transaction_database: RollbackDatabase) -> Iterator[RollbackDatabase]:
     """Function level database."""
     yield post_transaction_database

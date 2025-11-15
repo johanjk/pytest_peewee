@@ -153,6 +153,12 @@ reportImplicitOverride = true
 reportMissingSuperCall = true
 reportPropertyTypeMismatch = true
 reportImplicitStringConcatenation = true
+reportUnnecessaryTypeIgnoreComment = true
+# peewee has incomplete type info
+reportUnknownParameterType = false
+reportUnknownMemberType = false
+reportUnknownVariableType = false
+reportUnknownArgumentType = false
 
 [tool.deptry]
 requirements_files = ["src/requirements.txt", "src/tests/requirements.txt"]

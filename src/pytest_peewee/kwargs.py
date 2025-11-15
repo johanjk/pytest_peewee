@@ -1,11 +1,11 @@
-from typing import override
+from typing import ClassVar, override
 from urllib.parse import quote_plus, urlencode
 
 import pydantic
 
 
 class BaseModel(pydantic.BaseModel):  # noqa: D101
-    model_config = pydantic.ConfigDict(frozen=True, extra="forbid")
+    model_config: ClassVar[pydantic.ConfigDict] = pydantic.ConfigDict(frozen=True, extra="forbid")
 
 
 class UserSpec(BaseModel):
@@ -19,7 +19,7 @@ class UserSpec(BaseModel):
     password: str | None
 
     @override
-    def __str__(self):
+    def __str__(self) -> str:
         return ":".join(map(quote_plus, filter(None, [self.user, self.password])))
 
 
@@ -41,7 +41,7 @@ class HostSpecBlock(BaseModel):
         return self
 
     @override
-    def __str__(self):
+    def __str__(self) -> str:
         return "".join(filter(None, [
             quote_plus(self.host) if self.host else None,
             f":{self.port}" if self.port else None]
@@ -51,7 +51,7 @@ class HostSpecBlock(BaseModel):
 class Database(BaseModel):
     """Database kwargs validation."""
 
-    model_config = pydantic.ConfigDict(frozen=True, extra="forbid")
+    model_config: ClassVar[pydantic.ConfigDict] = pydantic.ConfigDict(frozen=True, extra="forbid")
 
     dbtype: str
     conn: list[HostSpecBlock] | None
@@ -60,7 +60,7 @@ class Database(BaseModel):
     params: dict[str, str] = pydantic.Field(default_factory=dict)
 
     @override
-    def __str__(self):
+    def __str__(self) -> str:
         """Build connection string.
 
         postgresql://[userspec@][hostspec][/dbname][?paramspec]

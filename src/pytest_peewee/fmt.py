@@ -1,4 +1,5 @@
 import warnings
+from typing import Any, TypedDict, cast
 
 import peewee as pw
 import sqlfluff
@@ -39,7 +40,24 @@ def render(query: pw.Query, database: pw.Database) -> str:
     )
 
 
-def lint_query(query: pw.Query, database: pw.Database) -> tuple[str, list[dict[str, str]]]:
+class LintInfo(TypedDict):
+    """Lint return of sqlfluff."""
+    start_line_no: int
+    start_line_pos: int
+    end_line_no: int
+    end_line_pos: int
+
+    start_file_pos: int
+    end_file_pos: int
+
+    code: str
+    description: str
+    name: str
+    warning: bool
+    fixes: list[dict[str, Any]]
+
+
+def lint_query(query: pw.Query, database: pw.Database) -> tuple[str, list[LintInfo]]:
     """Wrapper linting executed query."""
     s = render(query, database)
     f = sqlfluff.lint(
@@ -53,4 +71,4 @@ def lint_query(query: pw.Query, database: pw.Database) -> tuple[str, list[dict[s
             "CV04",  # Peewee prefers COUNT(1) over COUNT(*)
         ],
     )
-    return s, f
+    return s, cast(list[LintInfo], f)

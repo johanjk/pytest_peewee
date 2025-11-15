@@ -3,15 +3,16 @@ from inspect import getframeinfo, stack
 
 import peewee as pw
 from rich.console import Console, Group
+from rich.containers import Lines
 from rich.panel import Panel
 from rich.style import Style
 from rich.syntax import Syntax
-from rich.text import Lines, Text
+from rich.text import Text
 
 from . import fmt
 
 
-def console():
+def console() -> Console:
     """Pytest compatible console printer."""
     return Console(color_system="truecolor")
 
@@ -39,14 +40,14 @@ def highlight(s: str, dialect: str | None = None) -> Syntax:
     return Syntax(s, dialect or "SQL", line_numbers=("\n" in s), word_wrap=True)
 
 
-def caller_info(stacklevel: int):
+def caller_info(stacklevel: int) -> Text:
     """File and line info of caller."""
     caller = getframeinfo(stack()[stacklevel][0])
     style = Style(color="red")
     return Text.assemble(Text(caller.filename, style), ":", str(caller.lineno))
 
 
-def print_query(query: pw.Query, database: pw.Database, stacklevel: int | None = 1):
+def print_query(query: pw.Query, database: pw.Database, stacklevel: int | None = 1) -> None:
     """Pretty print a query."""
     d = highlight(fmt.render(query, database), dialect(database))
     if stacklevel is not None:
@@ -57,7 +58,7 @@ def print_query(query: pw.Query, database: pw.Database, stacklevel: int | None =
     console().print(Panel(d))
 
 
-def highlight_lint(s: Syntax, warns: list[dict[str, int]]) -> None:
+def highlight_lint(s: Syntax, warns: list[fmt.LintInfo]) -> None:
     """Highlight area of linting errors."""
     style = Style(bgcolor="red")
     for w in warns:

@@ -1,10 +1,12 @@
 from collections.abc import Callable
 from contextlib import AbstractContextManager, contextmanager
+from typing import cast
 
 import peewee as pw
 import pytest
 
 from . import console
+from .types import DebugContext, DebugQuery
 
 
 @pytest.fixture(scope="function")
@@ -25,15 +27,22 @@ def use_database(monkeypatch: pytest.MonkeyPatch) -> Callable[[pw.Database], Abs
 
 
 @pytest.fixture(scope="function")
-def query_helpers(monkeypatch) -> Callable[[pw.Database], AbstractContextManager]:
+def query_helpers(monkeypatch: pytest.MonkeyPatch) -> Callable[[pw.Database], AbstractContextManager[None]]:
     """Add print/lint query helpers."""
 
     @contextmanager
-    def func(database):
-        lint = lambda x: console.print_lint(x, database)
-        prnt = lambda x, stacklevel=1: console.print_query(x, database, stacklevel + 1 if stacklevel is not None else None)
+    def func(database: pw.Database):
+        def lint(self: pw.Query) -> bool:
+            return console.print_lint(self, database)
+        def prnt(self: pw.Query, stacklevel: int | None = 1) -> None:
+            console.print_query(self, database, stacklevel + 1 if stacklevel is not None else None)
+
         with monkeypatch.context() as m:
-            for clazz in (pw.Context, pw.Query):
+            mapping = [
+                cast(DebugContext, pw.Context),
+                cast(DebugContext, pw.Query),
+            ]
+            for clazz in mapping:
                 m.setattr(clazz, "print", prnt, raising=False)
                 m.setattr(clazz, "lint", lint, raising=False)
             yield
