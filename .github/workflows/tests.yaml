@@ -1,0 +1,129 @@
+---
+name: tests
+
+on:  # yamllint disable-line rule:truthy
+  push:
+    branches:
+      - master
+    tags:
+      - 'v*'
+  pull_request_target:
+    types:
+      - opened
+      - reopened
+      - synchronize
+    branches:
+      - master
+
+env:
+  PYTHONUNBUFFERED: "1"
+  FORCE_COLOR: "1"
+
+jobs:
+  hatch_config_parse:
+    runs-on: ubuntu-latest
+
+    outputs:
+      python_versions: ${{ steps.get-versions.outputs.python_versions }}
+      max_python_version: ${{ steps.get-versions.outputs.max_python_version }}
+
+    steps:
+      - name: Download uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+
+      - name: Install hatch
+        run: uv pip install hatch
+
+      - uses: actions/checkout@v4
+
+      - name: Getting versions from pyproject.toml
+        id: get-versions
+        # yamllint disable rule:line-length
+        run: |
+          unset FORCE_COLOR
+          versions="$(hatch env show all --json | jq -rcj '[. | to_entries[] | select(.key | startswith("all")) | .value.python] | unique')"
+          max_version="$(jq -rcj '.[-1]' <<< $versions)"
+          echo "python_versions=$versions"
+          echo "python_versions=$versions" >> $GITHUB_OUTPUT
+          echo "max_python_version=$max_version"
+          echo "max_python_version=$max_version" >> $GITHUB_OUTPUT
+        # yamllint enable rule:line-length
+
+  testing:
+    runs-on: ubuntu-latest
+    needs: hatch_config_parse
+    strategy:
+      matrix:
+        python: ${{ fromJson(needs.hatch_config_parse.outputs.python_versions) }}  # yamllint disable-line rule:line-length
+
+    steps:
+      - name: Setup python version ${{ matrix.python }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+
+      - name: Download uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+
+      - name: Install hatch
+        run: uv pip install hatch
+
+      - uses: actions/checkout@v4
+
+      - name: Create hatch env
+        run: python -m hatch -v env create
+
+      - name: Run tests
+        run: |
+          set -e
+          hatch -v run setup
+          hatch -v run +python=${{ matrix.python }} all:test --runxfail
+          hatch -v run teardown
+
+  lint:
+    runs-on: ubuntu-latest
+    needs: hatch_config_parse
+
+    steps:
+      - name: Setup python version ${{ needs.hatch_config_parse.outputs.max_python_version }}  # yamllint disable-line rule:line-length
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ needs.hatch_config_parse.outputs.max_python_version }}  # yamllint disable-line rule:line-length
+
+      # TODO: UV
+      - name: Download pip and install hatch
+        run: python -m pip install --upgrade pip hatch
+
+      - uses: actions/checkout@v4
+
+      - name: Create hatch env
+        run: python -m hatch -v env create types
+
+      - name: Run type checker
+        run: python -m hatch -v run types:check
+
+      - name: Check type completion
+        run: python -m hatch -v run types:verify
+
+      - name: Run linter
+        run: python -m hatch -v fmt --check --linter
+
+  # https://github.com/marketplace/actions/alls-green#why
+  check:  # This job does nothing and is only used for the branch protection
+    if: always()
+
+    needs:
+      - testing
+      - lint
+
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Decide whether the needed jobs succeeded or failed
+        uses: re-actors/alls-green@release/v1
+        with:
+          jobs: ${{ toJSON(needs) }}
