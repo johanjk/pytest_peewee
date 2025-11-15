@@ -60,7 +60,7 @@ jobs:
 
     steps:
       - name: Setup python version ${{ matrix.python }}
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: ${{ matrix.python }}
 
@@ -90,7 +90,7 @@ jobs:
 
     steps:
       - name: Setup python version ${{ needs.hatch_config_parse.outputs.max_python_version }}  # yamllint disable-line rule:line-length
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: ${{ needs.hatch_config_parse.outputs.max_python_version }}  # yamllint disable-line rule:line-length
 
