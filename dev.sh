@@ -30,6 +30,7 @@ case "$1" in
 			-e MARIADB_PASSWORD=secret \
 			-e MARIADB_USER=dbuser \
 			-e MARIADB_DATABASE=test_db \
+			-e MARIADB_RANDOM_ROOT_PASSWORD=1 \
 			-p 127.0.0.1:30001:3306/tcp \
 			--health-cmd='healthcheck.sh --connect --innodb_initialized' \
 			--health-interval 1s \
@@ -41,12 +42,12 @@ case "$1" in
 			mariadb:12
 
 		while [ "$(docker inspect -f \{\{.State.Health.Status\}\} $container_id_pg)" != "healthy" ]; do
-			echo "waiting for container start..."
+			echo "waiting for container $container_id_pg start..."
 			sleep 2
 		done
 
 		while [ "$(docker inspect -f \{\{.State.Health.Status\}\} $container_id_md)" != "healthy" ]; do
-			echo "waiting for container start..."
+			echo "waiting for container $container_id_md start..."
 			sleep 2
 		done
 		;;

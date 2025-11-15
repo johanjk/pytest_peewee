@@ -1,3 +1,5 @@
+from pathlib import Path
+
 import peewee as pw
 import pytest
 
@@ -73,6 +75,6 @@ def test_print(capsys, database):
     │ [...]/tests/pytest_peewee/test_console.py:46                                 │
     ╰──────────────────────────────────────────────────────────────────────────────╯
     """
-    assert __file__ in stdout
+    assert Path(__file__).name in stdout
     assert len(stdout.split("\n")) >= len(exp.split("\n"))
     # can be larger if filepath is longer than terminal width
