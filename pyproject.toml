@@ -82,6 +82,7 @@ skip-excluded-dirs = true
 sources = ["src"]
 [tool.hatch.build.targets.sdist.force-include]
 "src/requirements.txt" = "src/requirements.txt"
+"dev.sh" = "dev.sh"
 
 [tool.coverage.run]
 source_pkgs = ["pytest_peewee", "tests"]
