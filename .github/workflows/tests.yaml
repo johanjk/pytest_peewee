@@ -77,6 +77,9 @@ jobs:
       - name: Create hatch env
         run: hatch -v env create
 
+      - name: Run dependency check
+        run: hatch -v run req
+
       - name: Run tests
         run: |
           set -e
