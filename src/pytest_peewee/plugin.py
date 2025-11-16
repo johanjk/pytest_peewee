@@ -109,8 +109,10 @@ def setup_database(database_string: str) -> Iterator[pw.Database]:
     try:
         with database.atomic():
             pass
-    except pw.OperationalError:
-        pytest.xfail(f"Could not connect; Database '{database_string}'.")
+    except pw.OperationalError as err:
+        msg = f"Could not connect; Database '{database_string}'."
+        pytest.xfail(msg)
+        raise ValueError(msg) from err
 
     assert isinstance(database, pw.Database)
 
