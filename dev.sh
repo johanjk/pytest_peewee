@@ -1,8 +1,15 @@
 #!/usr/bin/env bash
 
 container_id_pg=ci_postgres
+pg_img="postgres:18"
 container_id_md=ci_mariadb
+md_img="mariadb:12"
+
 case "$1" in
+	"pull")
+		docker pull "$pg_img"
+		docker pull "$md_img"
+		;;
 	"stop")
 		docker stop "$container_id_pg"
 		docker rm "$container_id_pg"
@@ -25,7 +32,7 @@ case "$1" in
 			--health-timeout 1s \
 			--name="$container_id_pg" \
 			-d \
-			timescale/timescaledb-ha:pg18-all
+			"$pg_img"
 		docker run \
 			-e MARIADB_PASSWORD=secret \
 			-e MARIADB_USER=dbuser \
@@ -39,7 +46,7 @@ case "$1" in
 			--health-timeout 1s \
 			--name="$container_id_md" \
 			-d \
-			mariadb:12
+			"$md_img"
 
 		while [ "$(docker inspect -f \{\{.State.Health.Status\}\} $container_id_pg)" != "healthy" ]; do
 			echo "waiting for container $container_id_pg start..."
