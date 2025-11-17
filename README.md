@@ -11,20 +11,11 @@ Extensions to the Python SQL ORM [Peewee](https://github.com/coleifer/peewee/).
 * Failed queries prints formatted SQL in exception trace.
 * Failed queries are linted and warning is output on linting problem.
 * Any query can be easily printed using [rich](https://github.com/Textualize/rich) or linted with [sqlfluff](https://github.com/sqlfluff/sqlfluff).
+* Supports `postgres`, `sqlite` and `mysql`.
 
 ## Getting started
 
-[Database configuration](/docs/connection.md) can be done in a number of ways, dependent on your needs.
-
-* [setting](/docs/connection.md#default-configuration) default connection kwargs
-* [setting](/docs/connection.md#env-var-configuration) env vars
-* [setting](/docs/connection.md#connection-configuration) connection kwargs
-* [setting](/docs/connection.md#database-string) database string
-* [creating](/docs/connection.md#database-instance) `pw.Database` instance
-
-## Usage
-
-To initialize tables, override `database` as follows:
+To initialize tables, override the `database` fixture as follows:
 
 ```python
 import peewee as pw
@@ -37,8 +28,8 @@ class Table(pw.Model):
 def database(database):
     Table.create_table()
     yield database
-    # drop tables here, if using mysql
-    Table.drop_table()
+    if database.is_connection_usable():
+        Table.drop_table()  # remember to drop tables, if using mysql
 ```
 
 Create your tests by including the `database` fixture:
@@ -48,6 +39,8 @@ def test_table_insert(database):
     Table.insert(field='data').execute()
     assert Table.select(Table.field).where(Table.field == 'data').count() == 1
 ```
+
+### Usage
 
 Debug your queries by doing print/lint:
 
@@ -59,9 +52,62 @@ def test_table_insert(database):
     q.lint()  # Also print linting errors from sqlfluff
 ```
 
+Failed queries are printed and linted:
+
+```python
+def test_wrong_join(database):
+    a = Table.alias("t")
+
+    q = Table.select().join(a.select(a.field), on=(Table.field == a.field))
+    with pytest.raises((pw.ProgrammingError, pw.OperationalError)):
+        q.execute()
+```
+
+Example output:
+
+```bash
+query_error.py:27: ProgrammingError
+----------------------------- Captured stdout call -----------------------------
+╭──────────────────────────────────────────────────────────────────────────────╮
+│   1 WITH t2 AS (SELECT "t"."field" FROM "table" AS "t")                      │
+│   2                                                                          │
+│   3 SELECT                                                                   │
+│   4     "t1"."id",                                                           │
+│   5     "t1"."field"                                                         │
+│   6 FROM "table" AS "t1"                                                     │
+│   7 INNER JOIN t2 ON ("t"."field" = "t1"."field")                            │
+│ RF01: Reference '"t"."field"' refers to table/view not found in the FROM     │
+│ clause or found in ancestor statement.                                       │
+╰──────────────────────────────────────────────────────────────────────────────╯
+```
+
+### Configure alternate databases
+
+By default, the `database` is in-memory sqlite. Other databases can be configured.
+
+Most simply by setting the following environment variables:
+
+```bash
+export DBDRIVER="psycopg3"
+export DBHOST="localhost"
+export DBPORT="5432"
+export DBDATABASE="test_db"
+export DBUSER="dbuser"
+export DBPASSWORD="secret"
+pytest
+```
+
+[Database configuration](/docs/connection.md) can be done in a number of other ways, dependent on your needs.
+
+* [setting](/docs/connection.md#default-configuration) default connection kwargs
+* [setting](/docs/connection.md#env-var-configuration) env vars
+* [setting](/docs/connection.md#connection-configuration) connection kwargs
+* [setting](/docs/connection.md#database-string) database string
+* [creating](/docs/connection.md#database-instance) `pw.Database` instance
+
 ## Install
 
-The library is not on pypi, install directly from git.
+The library is not on `pypi`, install directly from git.
 
 ### `requirements.txt` example
 

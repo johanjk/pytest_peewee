@@ -58,6 +58,7 @@ def test_database_recreate(database):
     """Sanity check that re-reaction will fail."""
     SomeTable.create_table()
     with pytest.raises((pw.OperationalError, pw.ProgrammingError)):
+        # mysql and sqlite raises 'pw.OperationalError' but postgres 'pw.ProgrammingError'
         SomeTable.create_table(safe=False)
 
 

@@ -1,5 +1,7 @@
 # Configure database connection
 
+The database can be configured in a number of ways. The [env-var](#env-var-configuration) method is recommended.
+
 ## Default configuration
 
 Set a default configuration that matches your specific development environment.
@@ -49,7 +51,7 @@ def database_default_envvar():
     }
 ```
 
-### Using hatch `hatch.toml`:
+### Using hatch `hatch.toml`
 
 ```toml
 [envs.default.env-vars]
@@ -66,7 +68,6 @@ test = "pytest {args:src/tests}"
 ```bash
 hatch run test
 ```
-
 
 ## Connection configuration
 
@@ -88,6 +89,7 @@ def database_kwargs(database_envvar, database_default_kwargs):
 ## Database string
 
 Override `database_string` with your database of choice.
+Note that this will bypass connection string validation.
 
 ```python
 @pytest.fixture(scope="module")
@@ -101,6 +103,6 @@ If full configuration control is required, override the following:
 
 ```python
 @pytest.fixture(scope="module")
-def setup_database(request, database_string):
+def setup_database(database_string):
     yield pw.Database('test_db')
 ```

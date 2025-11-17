@@ -16,7 +16,8 @@ class OtherTable(pw.Model):  # noqa: D101
 def database(database):  # noqa: D103
     OtherTable.create_table()
     yield database
-    OtherTable.drop_table()
+    if database.is_connection_usable():
+        OtherTable.drop_table()
 
 
 def maybe_bad_query(fail: bool) -> DebugQuery:

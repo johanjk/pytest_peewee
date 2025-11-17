@@ -11,7 +11,8 @@ def setup_database(setup_database):  # noqa: D103
     # Must bind (this is pre-hook)
     DDLTable.drop_table()
     yield setup_database
-    DDLTable.drop_table()
+    if setup_database.is_connection_usable():
+        DDLTable.drop_table()
 
 
 def test_insert_one(database):

@@ -13,8 +13,9 @@ def setup_database(setup_database):  # noqa: D103
 
     InterfereTable.create_table()
     yield setup_database
-    assert InterfereTable.table_exists()
-    InterfereTable.drop_table()
+    if setup_database.is_connection_usable():
+        assert InterfereTable.table_exists()
+        InterfereTable.drop_table()
 
 
 @pytest.fixture
