@@ -97,6 +97,8 @@ export DBPASSWORD="secret"
 pytest
 ```
 
+`DBDRIVER` Should be one Peewee's [supported schemas](https://docs.peewee-orm.com/en/latest/peewee/playhouse.html#connect).
+
 [Database configuration](/docs/connection.md) can be done in a number of other ways, dependent on your needs.
 
 * [setting](/docs/connection.md#default-configuration) default connection kwargs
