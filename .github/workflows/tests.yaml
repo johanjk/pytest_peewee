@@ -9,6 +9,11 @@ on:  # yamllint disable-line rule:truthy
       - 'v*'
   pull_request:  # yamllint disable-line rule:truthy
 
+concurrency:
+  group: |
+    ${{ github.workflow }}-${{ github.event.pull_request.number || github.sha }}
+  cancel-in-progress: true
+
 env:
   PYTHONUNBUFFERED: "1"
   FORCE_COLOR: "1"
