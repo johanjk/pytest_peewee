@@ -1,7 +1,7 @@
 # Pytest Peewee ORM extensions
 
 [Pytest](https://github.com/pytest-dev/pytest/)
-Extensions to the Python SQL ORM [Peewee](https://github.com/coleifer/peewee/).
+Extensions for the Python SQL ORM [Peewee](https://github.com/coleifer/peewee/).
 
 ## Features
 
@@ -97,7 +97,7 @@ export DBPASSWORD="secret"
 pytest
 ```
 
-`DBDRIVER` Should be one Peewee's [supported schemas](https://docs.peewee-orm.com/en/latest/peewee/playhouse.html#connect).
+`DBDRIVER` Should be one of Peewee's [supported schemas](https://docs.peewee-orm.com/en/latest/peewee/playhouse.html#connect).
 
 [Database configuration](/docs/connection.md) can be done in a number of other ways, dependent on your needs.
 
