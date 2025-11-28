@@ -19,7 +19,7 @@ def test_readme(markdown):
 
 
 def test_readme_pytest(markdown, testdir):
-    """Make sure README code runable as tests."""
+    """Make sure README code runnable as tests."""
     with open(markdown, 'r', encoding='utf-8') as f:
         text = f.read()
 

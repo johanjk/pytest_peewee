@@ -147,6 +147,9 @@ jobs:
       - name: Run linter
         run: hatch -v fmt --check --linter
 
+      - name: Spell Check Repo
+        uses: crate-ci/typos@v1
+
   # https://github.com/marketplace/actions/alls-green#why
   check:  # This job does nothing and is only used for the branch protection
     if: always()
