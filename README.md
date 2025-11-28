@@ -40,6 +40,8 @@ def test_table_insert(database):
     assert Table.select(Table.field).where(Table.field == 'data').count() == 1
 ```
 
+Or one of the following fixtures, (`sqlite`, `postgres`, `mysql`, `cockroach`) if test should be skipped while testing other database drivers.
+
 ### Usage
 
 Debug your queries by doing print/lint:
