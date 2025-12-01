@@ -33,7 +33,7 @@ jobs:
       - name: Install hatch
         run: uv tool install hatch
 
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
 
       - name: Getting versions from pyproject.toml
         id: get-versions
@@ -55,7 +55,7 @@ jobs:
       cache_key: ${{ steps.cache-key.versions.outputs.cache_key }}
 
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
 
       - name: Get Date
         id: get-date
@@ -99,7 +99,7 @@ jobs:
       - name: Install hatch
         run: uv tool install hatch
 
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
 
       - name: Create hatch env
         run: hatch -v env create
@@ -133,7 +133,7 @@ jobs:
       - name: Download pip and install hatch
         run: pip install --upgrade pip hatch
 
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
 
       - name: Create hatch env
         run: hatch -v env create types
