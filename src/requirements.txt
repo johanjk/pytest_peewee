@@ -1,5 +1,5 @@
-peewee==3.18.3
-pytest==9.0.1
-pydantic==2.12.4
+peewee==3.19.0
+pytest==9.0.2
+pydantic==2.12.5
 rich==14.2.0
 sqlfluff==3.5.0
