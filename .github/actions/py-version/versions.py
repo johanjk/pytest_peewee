@@ -5,15 +5,15 @@
 # ///
 """Parses pyproject.toml requires-python and prints a JSON matrix for CI."""
 
-import json
-import sys
-from pathlib import Path
-import tomllib
 import argparse
+import json
 import subprocess
+import sys
+import tomllib
+from pathlib import Path
 
-from packaging.version import Version
 from packaging.specifiers import SpecifierSet
+from packaging.version import Version
 
 
 def get_version(entry: dict) -> str | None:

@@ -24,13 +24,13 @@ jobs:
     outputs:
       matrix: ${{ steps.set-matrix.outputs.matrix }}
     steps:
-      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
 
       - name: Set Python matrix
         id: set-matrix
-        uses: .github/actions/py-version
+        uses: ./.github/actions/py-version
 
   cache_docker:
     runs-on: ubuntu-latest
@@ -39,7 +39,7 @@ jobs:
       cache_key: ${{ steps.cache-key.versions.outputs.cache_key }}
 
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Get Date
         id: get-date
@@ -55,7 +55,7 @@ jobs:
         # yamllint enable rule:line-length
 
       - name: Cache Docker images
-        uses: ScribeMD/docker-cache@0.5.0
+        uses: ScribeMD/docker-cache@fb28c93772363301b8d0a6072ce850224b73f74e # 0.5.0
         with:
           key: ${{ steps.cache-key.outputs.cache_key }}
 
@@ -74,20 +74,20 @@ jobs:
 
     steps:
       - name: Setup python version ${{ matrix.python }}
-        uses: actions/setup-python@v6
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
           python-version: ${{ matrix.python }}
 
       - name: Download uv
-        uses: astral-sh/setup-uv@v7
+        uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
 
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Run dependency check
         run: uv run poe req
 
       - name: Cache Docker images
-        uses: ScribeMD/docker-cache@0.5.0
+        uses: ScribeMD/docker-cache@fb28c93772363301b8d0a6072ce850224b73f74e # 0.5.0
         with:
           key: "{{ needs.cache_docker.outputs.cache_key }}"
 
@@ -104,11 +104,11 @@ jobs:
 
     steps:
       - name: Setup python version ${{ needs.generate-matrix.outputs.newest }}  # yamllint disable-line rule:line-length
-        uses: actions/setup-python@v6
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
           python-version: ${{ needs.generate-matrix.outputs.newest }}  # yamllint disable-line rule:line-length
 
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Run type checker
         run: uv run poe types:check
@@ -120,7 +120,7 @@ jobs:
         run: uv run poe fmt:check
 
       - name: Spell Check Repo
-        uses: crate-ci/typos@v1
+        uses: crate-ci/typos@7f9d0819ca1c008ade73f4b41fa9d258d48f605b # v1.51.1
 
   # https://github.com/marketplace/actions/alls-green#why
   check:  # This job does nothing and is only used for the branch protection
