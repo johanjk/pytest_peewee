@@ -2,6 +2,7 @@ from pathlib import Path
 
 import mktestdocs as mt  # type: ignore[import-untyped]
 import pytest
+import peewee as pw
 
 files = {
     *Path(".").glob("**/README.md"),
@@ -10,13 +11,13 @@ files = {
 # files.remove(Path("./docs/fixtures.md"))
 
 
-@pytest.fixture(scope="module", params=files, ids=str)
-def markdown(request: pytest.Request, toplevel_path: Path):
+@pytest.fixture(params=files, ids=str)
+def markdown(database: pw.Database, request: pytest.Request, toplevel_path: Path):
     """All markdown docs."""
     yield toplevel_path / request.param
 
 
-@pytest.fixture(scope="module")
+@pytest.fixture
 def md_testdir(markdown: Path, testdir: pytest.TestDir):
     with open(markdown, 'r', encoding='utf-8') as f:
         text = f.read()

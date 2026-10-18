@@ -19,34 +19,18 @@ env:
   FORCE_COLOR: "1"
 
 jobs:
-  hatch_config_parse:
+  generate-matrix:
     runs-on: ubuntu-latest
-
     outputs:
-      python_versions: ${{ steps.get-versions.outputs.python_versions }}
-      max_python_version: ${{ steps.get-versions.outputs.max_python_version }}
-
+      matrix: ${{ steps.set-matrix.outputs.matrix }}
     steps:
-      - name: Download uv
-        uses: astral-sh/setup-uv@v7
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          persist-credentials: false
 
-      - name: Install hatch
-        run: uv tool install hatch
-
-      - uses: actions/checkout@v5
-
-      - name: Getting versions from pyproject.toml
-        id: get-versions
-        # yamllint disable rule:line-length
-        run: |
-          unset FORCE_COLOR
-          versions="$(hatch env show all --json | jq -rcj '[. | to_entries[] | select(.key | startswith("all")) | .value.python] | unique')"
-          max_version="$(jq -rcj '.[-1]' <<< $versions)"
-          echo "python_versions=$versions"
-          echo "python_versions=$versions" >> $GITHUB_OUTPUT
-          echo "max_python_version=$max_version"
-          echo "max_python_version=$max_version" >> $GITHUB_OUTPUT
-        # yamllint enable rule:line-length
+      - name: Set Python matrix
+        id: set-matrix
+        uses: .github/actions/py-version
 
   cache_docker:
     runs-on: ubuntu-latest
@@ -79,13 +63,14 @@ jobs:
         run: ./dev.sh pull
 
   testing:
-    runs-on: ubuntu-latest
     needs:
-      - hatch_config_parse
+      - generate-matrix
       - cache_docker
+    runs-on: ubuntu-latest
     strategy:
+      fail-fast: false
       matrix:
-        python: ${{ fromJson(needs.hatch_config_parse.outputs.python_versions) }}  # yamllint disable-line rule:line-length
+        python: ${{ fromJson(needs.generate-matrix.outputs.matrix) }}
 
     steps:
       - name: Setup python version ${{ matrix.python }}
@@ -96,16 +81,10 @@ jobs:
       - name: Download uv
         uses: astral-sh/setup-uv@v7
 
-      - name: Install hatch
-        run: uv tool install hatch
-
       - uses: actions/checkout@v5
 
-      - name: Create hatch env
-        run: hatch -v env create
-
       - name: Run dependency check
-        run: hatch -v run req
+        run: uv run poe req
 
       - name: Cache Docker images
         uses: ScribeMD/docker-cache@0.5.0
@@ -115,37 +94,30 @@ jobs:
       - name: Run tests
         run: |
           set -e
-          hatch -v run setup
-          hatch -v run +python=${{ matrix.python }} all:test --runxfail -vv
-          hatch -v run teardown
+          uv run poe setup
+          uv run poe test:all-dbs --runxfail -vv
+          uv run poe teardown
 
   lint:
     runs-on: ubuntu-latest
-    needs: hatch_config_parse
+    needs: generate-matrix
 
     steps:
-      - name: Setup python version ${{ needs.hatch_config_parse.outputs.max_python_version }}  # yamllint disable-line rule:line-length
+      - name: Setup python version ${{ needs.generate-matrix.outputs.newest }}  # yamllint disable-line rule:line-length
         uses: actions/setup-python@v6
         with:
-          python-version: ${{ needs.hatch_config_parse.outputs.max_python_version }}  # yamllint disable-line rule:line-length
-
-      # TODO: UV
-      - name: Download pip and install hatch
-        run: pip install --upgrade pip hatch
+          python-version: ${{ needs.generate-matrix.outputs.newest }}  # yamllint disable-line rule:line-length
 
       - uses: actions/checkout@v5
 
-      - name: Create hatch env
-        run: hatch -v env create types
-
       - name: Run type checker
-        run: hatch -v run types:check
+        run: uv run poe types:check
 
       - name: Check type completion
-        run: hatch -v run types:verify
+        run: uv run poe types:verify
 
       - name: Run linter
-        run: hatch -v fmt --check --linter
+        run: uv run poe fmt:check
 
       - name: Spell Check Repo
         uses: crate-ci/typos@v1

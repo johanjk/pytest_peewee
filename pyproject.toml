@@ -44,11 +44,25 @@ test = [
   "mktestdocs",
 ]
 dev = [
-  "types-peewee",
   "psycopg",
+  "psycopg-binary",
   "pymysql",
+  "poethepoet",
+  "ruff",
 ]
-
+types = [
+  "mypy>=1.0.0",
+  "pyright",
+]
+dist = [
+  "check-wheel-contents",
+  "pkginfo",
+  "pydistcheck",
+  "pyroma",
+  "twine",
+  "uv",
+  "wheel-inspect",
+]
 
 [project.urls]
 Documentation = "https://github.com/johanjk/pytest_peewee#readme"
@@ -57,6 +71,10 @@ Source = "https://github.com/johanjk/pytest_peewee"
 
 [project.entry-points.pytest11]
 peewee = "pytest_peewee"
+
+[tool.uv]
+package = true
+default-groups = "all"
 
 [build-system]
 requires = [
@@ -81,7 +99,9 @@ skip-excluded-dirs = true
 [tool.hatch.build.targets.wheel]
 sources = ["src"]
 [tool.hatch.build.targets.sdist.force-include]
-"src/requirements.txt" = "src/requirements.txt"
+"uv.lock" = "uv.lock"
+"poe_tasks.toml" = "poe_tasks.toml"
+"scripts" = "scripts"
 "dev.sh" = "dev.sh"
 
 [tool.coverage.run]
@@ -160,6 +180,3 @@ reportUnknownParameterType = false
 reportUnknownMemberType = false
 reportUnknownVariableType = false
 reportUnknownArgumentType = false
-
-[tool.deptry]
-requirements_files = ["src/requirements.txt", "src/tests/requirements.txt"]

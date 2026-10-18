@@ -51,8 +51,10 @@ def test_table_insert(database):
     q = Table.select(Table.field).order_by(Table.id)
     q.print()  # Simple formatted print
     # or
-    q.lint()  # Also print linting errors from sqlfluff
+    assert q.lint()  # Also print linting errors from sqlfluff
 ```
+
+`.lint()` can also be asserted (returns `True` on no linting errors.)
 
 Failed queries are printed and linted:
 
@@ -117,4 +119,15 @@ The library is not on `pypi`, install directly from git.
 
 ```bash
 pytest-peewee @ git+ssh://git@github.com/johanjk/pytest-peewee
+```
+
+### uv example
+
+```toml
+dependencies = [
+  "pytest-peewee",
+]
+
+[tool.uv.sources]
+pytest-peewee = { git = "git+ssh://git@github.com/johanjk/pytest-peewee.git" }
 ```

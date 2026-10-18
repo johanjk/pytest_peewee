@@ -69,6 +69,24 @@ test = "pytest {args:src/tests}"
 hatch run test
 ```
 
+### Using poethepoet
+
+```toml
+[env]
+DBDRIVER = "psycopg3"
+DBHOST = "127.0.0.1"
+DBPORT = "30000"
+DBDATABASE = "test_db"
+DBUSER = "dbuser"
+DBPASSWORD = "secret"
+[tasks.test]
+cmd = "pytest src/tests"
+```
+
+```bash
+uv run poe test
+```
+
 ## Connection configuration
 
 This is equivalent to [Default configuration](#default-configuration), but happens after env var replacement.
