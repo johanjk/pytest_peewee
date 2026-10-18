@@ -34,7 +34,7 @@ def render(query: pw.Query, database: pw.Database) -> str:
     return sqlfluff.fix(
         q,
         dialect=dialect(database),
-        rules=["capitalisation", "layout", "structure", "LT05"],
+        rules=["capitalisation", "layout", "structure", "LT05", "LT09"],
         exclude_rules=["CP01", "LT12", "RF06"],
         fix_even_unparsable=True,
     )
@@ -65,6 +65,8 @@ def lint_query(query: pw.Query, database: pw.Database) -> tuple[str, list[LintIn
         dialect=dialect(database),
         rules=["all"],
         exclude_rules=[
+            "LT05",  # Line too long
+            "LT09",  # Select targets should be on a new line
             "CP01",  # Capitalization
             "LT12",  # Newline at end
             "RF06",  # Quoted identifier
