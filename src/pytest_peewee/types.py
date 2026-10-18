@@ -18,10 +18,10 @@ class RollbackDatabase(pw.Database):
 class DebugHelper:
     """Debuggable query like type."""
     @abstractmethod
-    def print(self, stacklevel: int | None = 1) -> None:
+    def print(self, subtext: str | None = None) -> None:
         """Pretty print a formatted and syntax highlighted SQL of this."""
     @abstractmethod
-    def lint(self) -> bool:
+    def lint(self, subtext: str | None = None) -> bool:
         """Pretty linting of this query.
 
         Returns:

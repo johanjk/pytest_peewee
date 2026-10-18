@@ -1,5 +1,6 @@
+from collections.abc import Sequence
 import warnings
-from inspect import getframeinfo, stack
+import inspect
 
 import peewee as pw
 from rich.console import Console, Group
@@ -40,21 +41,49 @@ def highlight(s: str, dialect: str | None = None) -> Syntax:
     return Syntax(s, dialect or "SQL", line_numbers=("\n" in s), word_wrap=True)
 
 
-def caller_info(stacklevel: int) -> Text:
+def get_external_caller_info(package_names: Sequence[str]) -> inspect.Traceback | None:
+    package_prefixes = tuple(f"{pkg}." for pkg in package_names)
+
+    frame = inspect.currentframe()
+    if not frame:
+        return None
+
+    while frame := frame.f_back:
+        module_name = frame.f_globals.get('__name__', '')
+
+        if module_name:
+            is_excluded = (
+                module_name in package_names or
+                module_name.startswith(package_prefixes)
+            )
+
+            if not is_excluded:
+                return inspect.getframeinfo(frame)
+
+        # Move up the stack
+        frame = frame.f_back
+
+    return None
+
+
+def caller_info() -> Text | None:
     """File and line info of caller."""
-    caller = getframeinfo(stack()[stacklevel][0])
+    caller = get_external_caller_info(["peewee", "pytest_peewee", "_pytest", "pytest"])
+    if caller is None:
+        return None
     style = Style(color="red")
     return Text.assemble(Text(caller.filename, style), ":", str(caller.lineno), overflow="fold")
 
 
-def print_query(query: pw.Query, database: pw.Database, stacklevel: int | None = 1) -> None:
+def print_query(query: pw.Query, database: pw.Database, subtext: str | None = None) -> None:
     """Pretty print a query."""
     d = highlight(fmt.render(query, database), dialect(database))
-    if stacklevel is not None:
-        d = Group(
-            d,
-            caller_info(stacklevel + 1),
-        )
+    g = [
+        d,
+        caller_info(),
+        subtext
+    ]
+    d = Group(*[o for o in g if o is not None])
     console().print(Panel(d))
 
 
@@ -73,7 +102,7 @@ def highlight_lint(s: Syntax, warns: list[fmt.LintInfo]) -> None:
         s.stylize_range(style, start=start, end=end)
 
 
-def print_lint(query: pw.Query, database: pw.Database) -> bool:
+def print_lint(query: pw.Query, database: pw.Database, subtext: str | None = None) -> bool:
     """Pretty print a query and possible linting errors."""
     s, f = fmt.lint_query(query, database)
     if not f:
@@ -87,5 +116,8 @@ def print_lint(query: pw.Query, database: pw.Database) -> bool:
 
     style = Style(color="red")
     errs = Lines(Text.assemble(Text(x[0], style=style), ": ", x[1]) for x in errs)
-    console().print(Panel(Group(s, errs)))
+    subtext = f"\n{subtext}" if subtext else subtext
+    g = [s, errs, subtext]
+    d = Group(*[o for o in g if o is not None])
+    console().print(Panel(d))
     return False
