@@ -1,6 +1,6 @@
-from collections.abc import Sequence
-import warnings
 import inspect
+import warnings
+from collections.abc import Sequence
 
 import peewee as pw
 from rich.console import Console, Group
@@ -60,15 +60,12 @@ def get_external_caller_info(package_names: Sequence[str]) -> inspect.Traceback 
             if not is_excluded:
                 return inspect.getframeinfo(frame)
 
-        # Move up the stack
-        frame = frame.f_back
-
     return None
 
 
 def caller_info() -> Text | None:
     """File and line info of caller."""
-    caller = get_external_caller_info(["peewee", "pytest_peewee", "_pytest", "pytest"])
+    caller = get_external_caller_info(["peewee", "pytest_peewee", "_pytest", "pytest", "pluggy"])
     if caller is None:
         return None
     style = Style(color="red")

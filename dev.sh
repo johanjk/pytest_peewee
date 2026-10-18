@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+set -e
 
 container_id_pg=ci_postgres
 pg_img="postgres:18"

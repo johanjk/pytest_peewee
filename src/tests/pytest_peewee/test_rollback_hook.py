@@ -1,7 +1,7 @@
 import peewee as pw
 
 
-def test_rollback(run_testpath):
+def test_rollback(database, run_testpath):
     """Rollback of inserts."""
     result = run_testpath("rollback.py")
     result.assert_outcomes(errors=0, passed=2)

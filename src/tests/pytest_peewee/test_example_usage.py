@@ -1,3 +1,4 @@
+import textwrap
 from contextlib import nullcontext as does_not_raise
 
 import peewee as pw
@@ -72,8 +73,14 @@ def test_bad_query(database):
 
     txt = str(target.value)
     assert txt != str(query)
-    assert len(txt.split("\n")) == 2
-    exp = 'SELECT "t1"."value" FROM (SELECT "t2"."id" FROM "sometable" AS "t2") AS "t1"'
+    assert len(txt.split("\n")) == 6, txt
+    exp = textwrap.dedent("""\
+    SELECT "t1"."value"
+    FROM (SELECT
+        "t2"."id",
+        "t2"."x"
+    FROM "sometable" AS "t2") AS "t1"
+    """).rstrip()
     if isinstance(database, pw.MySQLDatabase):
         exp = exp.replace('"', '`')
     assert exp in txt

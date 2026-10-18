@@ -16,7 +16,7 @@ def database_string():
     )
 
 
-def test_connect(database):
+def test_connect(database: pw.Database):
     """Can use external db."""
     assert isinstance(database, pw.PostgresqlDatabase)
 

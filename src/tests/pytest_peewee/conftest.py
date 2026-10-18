@@ -11,12 +11,11 @@ def pytester_tests() -> Iterator[Path]:
 
 
 @pytest.fixture
-def run_testpath(testdir: pytest.Testdir, pytester_tests: Path):
+def run_testpath(pytester: pytest.Pytester, pytester_tests: Path):
     """Run a test wrapped in pytester."""
 
     def inner(file: str):
-        with open(pytester_tests / file, encoding="utf-8") as f:
-            testdir.makepyfile(f.read())
-        return testdir.runpytest()
+        pytester.makepyfile((pytester_tests / file).read_text(encoding="utf-8"))
+        return pytester.runpytest()
 
     return inner

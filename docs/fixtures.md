@@ -22,6 +22,7 @@ def test_fixutures(
     transaction,
     database,
 
+    # Mutually exclusive group of fixtures
     sqlite,
     postgres,
     mysql,

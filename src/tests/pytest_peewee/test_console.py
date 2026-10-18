@@ -13,7 +13,7 @@ class OtherTable(pw.Model):  # noqa: D101
 
 
 @pytest.fixture(scope="function")
-def database(database):  # noqa: D103
+def database(database: RollbackDatabase):  # noqa: D103
     OtherTable.create_table()
     yield database
     if database.is_connection_usable():
@@ -63,7 +63,7 @@ def test_print(capsys: pytest.CaptureFixture[str], database: RollbackDatabase, m
     # disable colors for easier comparison
     with monkeypatch.context() as m:
         from pytest_peewee import console as c
-        monkeypatch.setattr(c, "console", lambda: Console(color_system=None))
+        m.setattr(c, "console", lambda: Console(color_system=None))
 
         maybe_bad_query(False).print()
 
