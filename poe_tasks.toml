@@ -76,6 +76,10 @@ help = "Run MyPy type checker"
 cmd = "pyright --verifytypes pytest_peewee --ignoreexternal"
 help = "Verify exported type completions with Pyright"
 
+[tasks."lint:ci"]
+sequence = ["req", "lint", "docstyle", "types:check", "types:verify"]
+help = "Run all lint related actions in CI"
+
 # ------------------------------------------------------------------------------
 # DISTRIBUTION TASKS
 # ------------------------------------------------------------------------------

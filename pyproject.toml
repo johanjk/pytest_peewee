@@ -49,6 +49,7 @@ dev = [
   "pymysql",
   "poethepoet",
   "ruff",
+  "deptry",
 ]
 types = [
   "mypy>=1.0.0",
