@@ -1,4 +1,4 @@
-from collections.abc import Callable, Iterator
+from collections.abc import Callable, Generator
 from contextlib import AbstractContextManager, contextmanager
 from typing import Literal, cast
 
@@ -13,7 +13,7 @@ def transaction(monkeypatch: pytest.MonkeyPatch) -> Callable[[pw.Database], Abst
     """Per test isolation of all database operations."""
 
     @contextmanager
-    def func(database: pw.Database) -> Iterator[Tr | None]:
+    def func(database: pw.Database) -> Generator[Tr | None]:
         try:
             with database.atomic() as tr:
                 tr = cast(Tr, tr)

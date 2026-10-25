@@ -1,5 +1,4 @@
 from collections.abc import Iterator
-from contextlib import AbstractContextManager
 from typing import cast
 
 import peewee as pw

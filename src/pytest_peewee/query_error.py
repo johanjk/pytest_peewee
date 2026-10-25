@@ -1,5 +1,5 @@
 import functools
-from collections.abc import Callable, Iterator
+from collections.abc import Callable
 from contextlib import AbstractContextManager, contextmanager
 from typing import Any
 

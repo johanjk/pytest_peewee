@@ -5,6 +5,7 @@ import pytest
 class DDLTable(pw.Model):  # noqa: D101
     pass
 
+
 @pytest.fixture(scope="module")
 def setup_database(setup_database):  # noqa: D103
     DDLTable.bind(setup_database)

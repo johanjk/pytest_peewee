@@ -1,7 +1,6 @@
 from abc import abstractmethod
-from collections.abc import Callable, Iterator
+from collections.abc import Callable
 from contextlib import AbstractContextManager
-from typing import cast
 
 import peewee as pw
 

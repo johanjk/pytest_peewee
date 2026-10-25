@@ -1,5 +1,3 @@
-from pathlib import Path
-
 import peewee as pw
 import pytest
 from rich.console import Console
