@@ -186,7 +186,8 @@ class MySQLRollbackDatabase(RollbackDatabase, pw.MySQLDatabase):
 @cache  # one subclass per database class; stateless, the state is on the instance
 def _test_class(base: type[pw.Database]) -> type[RollbackDatabase]:
     mixin = MySQLRollbackDatabase if issubclass(base, pw.MySQLDatabase) else RollbackDatabase
-    return cast(type[RollbackDatabase], type(f"Test{base.__name__}", (mixin, base), {}))
+    cls = type(f"Test{base.__name__}", (mixin, base), {})  # ty: ignore[unsupported-dynamic-base]
+    return cast(type[RollbackDatabase], cls)  # ty: ignore[disjoint-cast]
 
 
 @contextmanager
@@ -210,7 +211,7 @@ def under_test(database: pw.Database) -> Generator[RollbackDatabase]:
         for attr in inspect.get_annotations(RollbackDatabase):
             mp.setattr(database, attr, getattr(RollbackDatabase, attr), raising=False)
         mp.setattr(database, "__class__", _test_class(type(database)))
-        yield cast(RollbackDatabase, database)
+        yield cast(RollbackDatabase, database)  # ty: ignore[disjoint-cast]
 
 
 @contextmanager

@@ -3,7 +3,7 @@
 import re
 import shutil
 from contextlib import suppress
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, cast
 
 import pytest
 
@@ -13,7 +13,7 @@ if TYPE_CHECKING:
 
 def output_dir(config: pytest.Config) -> Path:
     """Folder for failure artifacts, from the 'peewee_output' ini option, relative to the rootdir."""
-    return config.rootpath / config.getini("peewee_output")
+    return config.rootpath / cast(str, config.getini("peewee_output"))
 
 
 _RUN = re.compile(r"run-(\d+)")

@@ -1,6 +1,6 @@
 """Plugin hooks: ini options, and the global patches of a pytest session."""
 
-from typing import TYPE_CHECKING, Literal, get_args
+from typing import TYPE_CHECKING, Literal, cast, get_args
 
 import pytest
 
@@ -94,4 +94,4 @@ def scope(fixture_name: str, config: pytest.Config) -> ScopeName:  # ruff: ignor
     if value not in get_args(ScopeName.__value__):
         msg = f"peewee_scope must be one of {get_args(ScopeName.__value__)}, got {value!r}"
         raise pytest.UsageError(msg)
-    return value
+    return cast(ScopeName, value)

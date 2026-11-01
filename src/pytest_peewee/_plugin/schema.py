@@ -1,7 +1,7 @@
 """Schema fixtures, and the isolated test databases on top of them."""
 
 from contextlib import ExitStack, contextmanager
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, cast
 
 import pytest
 
@@ -37,7 +37,7 @@ def database_models() -> Iterator[list[type[pw.Model]]]:
 @pytest.fixture(scope=scope)
 def database_isolation(pytestconfig: pytest.Config) -> Iterator[IsolationPolicy]:
     """Policy for statements breaking test isolation, from the 'peewee_isolation' ini option."""
-    value = pytestconfig.getini("peewee_isolation")
+    value = cast(str, pytestconfig.getini("peewee_isolation"))
     if value not in POLICIES:
         msg = f"peewee_isolation must be one of {POLICIES}, got {value!r}"
         raise pytest.UsageError(msg)

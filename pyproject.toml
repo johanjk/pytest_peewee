@@ -53,6 +53,7 @@ dev = [
 types = [
   "mypy>=1.0.0",
   "pyright[nodejs]",
+  "ty>=0.0.95",
 ]
 dist = [
   "check-wheel-contents",
@@ -155,6 +156,15 @@ init_forbid_extra = true
 init_typed = true
 warn_required_dynamic_aliases = true
 
+
+[tool.ty.src]
+include = ["src/pytest_peewee"]
+exclude = ["src/pytest_peewee/version.py"]
+
+[tool.ty.rules]
+all = "error"
+# Empty strings mean unset (`parse_env` turns unset env vars into ""), so `if value:` is intended.
+truthiness-test-of-none-union = "ignore"
 
 [tool.pyright]
 include = ["src/pytest_peewee"]

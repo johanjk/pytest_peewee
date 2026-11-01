@@ -3,7 +3,7 @@
 import io
 import re
 from contextlib import nullcontext, suppress
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, cast
 
 import peewee as pw
 import pytest
@@ -26,7 +26,7 @@ if TYPE_CHECKING:
 
 def report_style(config: pytest.Config) -> console.ReportStyle:
     """The 'peewee_report' ini option; when unset, plain for AI agents and framed otherwise."""
-    style = config.getini("peewee_report")
+    style = cast(str | None, config.getini("peewee_report"))
     if style is None:
         return "plain" if console.agent() else "framed"
     if style not in console.REPORT_STYLES:
@@ -41,7 +41,7 @@ def install_helpers(mp: pytest.MonkeyPatch, redirect: Redirect, style: console.R
     Unbound queries use the active test database of `redirect`.
     """
     def database_of(query: pw.Query) -> pw.Database:
-        db = getattr(query, "_database", None) or redirect.current()
+        db = cast(pw.Database | None, getattr(query, "_database", None)) or redirect.current()
         if db is None:
             msg = "Query is not bound to a database, and no test database is active."
             raise pw.InterfaceError(msg)

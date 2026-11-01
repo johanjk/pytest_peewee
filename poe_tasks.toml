@@ -74,12 +74,16 @@ help = "Run Pyright static type checker"
 cmd = "mypy --install-types --non-interactive src/pytest_peewee"
 help = "Run MyPy type checker"
 
+[tasks."types:check-ty"]
+cmd = "ty check"
+help = "Run ty type checker"
+
 [tasks."types:verify"]
 cmd = "pyright --verifytypes pytest_peewee --ignoreexternal"
 help = "Verify exported type completions with Pyright"
 
 [tasks."lint:ci"]
-sequence = ["req", "lint", "docstyle", "types:check", "types:verify"]
+sequence = ["req", "lint", "docstyle", "types:check", "types:check-ty", "types:verify"]
 help = "Run all lint related actions in CI"
 
 # ------------------------------------------------------------------------------

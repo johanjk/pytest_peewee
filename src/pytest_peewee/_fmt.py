@@ -99,4 +99,4 @@ def _lint(sql: str, dialect: str | None) -> list[LintInfo]:
             "CV04",  # Peewee prefers COUNT(1) over COUNT(*)
         ],
     )
-    return cast(list[LintInfo], f)
+    return cast(list[LintInfo], f)  # ty: ignore[disjoint-cast]
