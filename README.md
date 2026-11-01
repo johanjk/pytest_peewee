@@ -150,6 +150,21 @@ def test_wrong_join(database):
 
 If the same query fails unexpectedly, the failure report shows it formatted and linted, as in the [example](#example).
 
+#### Typing and the helpers
+
+The helpers are added at runtime, so type checkers do not know them. Cast to `DebugHelper` if you care:
+
+```python
+from typing import cast
+
+from pytest_peewee import DebugHelper
+
+
+def test_table_debug_typed(database):
+    q = Table.select(Table.field)
+    assert cast(DebugHelper, q).lint()
+```
+
 ### Test isolation
 
 * `database.commit()` inside a test would commit the isolation transaction, and raises `IsolationError`.

@@ -34,16 +34,31 @@ def test_fixtures(
     pass
 ```
 
-| Fixture | Purpose |
-| --- | --- |
-| `database_models` | Models whose tables `setup_schema` creates once, and drops after. |
-| `database_redirect` | `{source_db: test_db}` for multi-database projects; the test databases are rolled back like `database`. |
-| `database_from_env` | Makes extra test databases, configured from env vars with a prefix (e.g. `ANALYTICS_DBDRIVER`). |
-| `database_isolation` | `strict`, `warn` or `off`, from the `peewee_isolation` ini option. |
-| `setup_schema` | Creates the tables outside any test transaction. Override to run migrations. |
-| `module_database` | Module wide transaction (rolled back after the module). Override to add shared data. |
-| `database` | Per test savepoint, rolled back after the test. Models and queries are redirected to it. |
-| `sqlite`, `postgres`, `mysql`, `cockroach` | `database`, skipping the test on other databases. |
+| Fixture | Type | Purpose |
+| --- | --- | --- |
+| `database_models` | `list[type[pw.Model]]` | Models whose tables `setup_schema` creates once, and drops after. |
+| `database_redirect` | `DatabaseMap` | `{source_db: test_db}` for multi-database projects; the test databases are rolled back like `database`. |
+| `database_from_env` | `DatabaseFactory` | Makes extra test databases, configured from env vars with a prefix (e.g. `ANALYTICS_DBDRIVER`). |
+| `database_isolation` | `IsolationPolicy` | `strict`, `warn` or `off`, from the `peewee_isolation` ini option. |
+| `setup_schema` | `pw.Database` | Creates the tables outside any test transaction. Override to run migrations. |
+| `module_database` | `RollbackDatabase` | Module wide transaction (rolled back after the module). Override to add shared data. |
+| `database` | `RollbackDatabase` | Per test savepoint, rolled back after the test. Models and queries are redirected to it. |
+| `sqlite`, `postgres`, `mysql`, `cockroach` | `RollbackDatabase` | `database`, skipping the test on other databases. |
+
+Types are importable from `pytest_peewee`, for annotating overrides:
+
+```python
+from collections.abc import Iterator
+
+import pytest
+
+from pytest_peewee import DatabaseFactory, DatabaseMap
+
+
+@pytest.fixture(scope="module")
+def database_redirect(database_from_env: DatabaseFactory) -> Iterator[DatabaseMap]:
+    yield {analytics: database_from_env("ANALYTICS_")}
+```
 
 ## Fixture flow
 

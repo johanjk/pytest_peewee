@@ -3,7 +3,7 @@ import pydantic
 import pytest
 from playhouse.db_url import parse, schemes  # type: ignore[reportMissingTypeStubs]
 
-from pytest_peewee.kwargs import Database, HostSpec, UserSpec
+from pytest_peewee._kwargs import Database, HostSpec, UserSpec
 
 
 def roundtrip(**kwargs: object) -> dict[str, object]:

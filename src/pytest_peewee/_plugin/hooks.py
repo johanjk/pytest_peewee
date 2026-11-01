@@ -4,7 +4,10 @@ from typing import TYPE_CHECKING, Literal, get_args
 
 import pytest
 
-from pytest_peewee import console, frames, redirect, report
+import pytest_peewee._console as console
+import pytest_peewee._frames as frames
+import pytest_peewee._redirect as redirect
+import pytest_peewee._report as report
 
 if TYPE_CHECKING:
     from collections.abc import Generator

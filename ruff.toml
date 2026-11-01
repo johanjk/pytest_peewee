@@ -52,4 +52,5 @@ ignore = [
   "SLF001", # private member accessed
   "T201", # print statement
   "S608", # sql injection
+  "PLC2701", # tests reach into the private modules
 ]

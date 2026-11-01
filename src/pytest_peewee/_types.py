@@ -2,7 +2,7 @@ from abc import abstractmethod
 
 import peewee as pw
 
-from .isolation import RollbackDatabase
+from ._isolation import RollbackDatabase
 
 __all__ = ["DebugContext", "DebugHelper", "DebugQuery", "RollbackDatabase"]
 

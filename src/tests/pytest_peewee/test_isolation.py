@@ -2,7 +2,7 @@ import peewee as pw
 import pytest
 
 from pytest_peewee import IsolationError, IsolationWarning, RollbackDatabase
-from pytest_peewee.isolation import (
+from pytest_peewee._isolation import (
     FAILED_QUERY,
     MySQLRollbackDatabase,
     implicit_commit,

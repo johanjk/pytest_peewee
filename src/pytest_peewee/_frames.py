@@ -8,8 +8,8 @@ from typing import TYPE_CHECKING, Any, Literal, get_args
 
 import pytest
 
-from . import console
-from .isolation import exception_chain, failed_query
+from . import _console as console
+from ._isolation import exception_chain, failed_query
 
 if TYPE_CHECKING:
     from collections.abc import Generator

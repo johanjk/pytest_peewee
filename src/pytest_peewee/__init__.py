@@ -1,7 +1,7 @@
 """pytest-peewee: pytest extensions for peewee."""
 
-from .isolation import IsolationError, IsolationWarning, RollbackDatabase
-from .plugin import (
+from ._isolation import IsolationError, IsolationPolicy, IsolationWarning, RollbackDatabase
+from ._plugin import (
     cockroach,
     database,
     database_default_envvar,
@@ -24,14 +24,20 @@ from .plugin import (
     setup_schema,
     sqlite,
 )
-from .report import pytest_runtest_makereport
-from .types import DebugContext, DebugQuery
+from ._plugin.connection import DatabaseFactory
+from ._redirect import DatabaseMap
+from ._report import pytest_runtest_makereport
+from ._types import DebugContext, DebugHelper, DebugQuery
 from .version import __version__, __version_tuple__
 
 __all__ = [
+    "DatabaseFactory",
+    "DatabaseMap",
     "DebugContext",
+    "DebugHelper",
     "DebugQuery",
     "IsolationError",
+    "IsolationPolicy",
     "IsolationWarning",
     "RollbackDatabase",
     "cockroach",

@@ -13,8 +13,8 @@ from rich.style import Style
 from rich.syntax import Syntax
 from rich.text import Text
 
-from . import fmt
-from .lint_highlight import lint_message
+from . import _fmt as fmt
+from ._lint_highlight import lint_message
 
 if TYPE_CHECKING:
     from collections.abc import Iterable

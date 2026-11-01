@@ -3,7 +3,7 @@ import re
 import peewee as pw
 import pytest
 
-from pytest_peewee import frames
+from pytest_peewee import _frames as frames
 
 
 @pytest.mark.parametrize(("args", "config", "shown"), [

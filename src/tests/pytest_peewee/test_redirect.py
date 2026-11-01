@@ -1,7 +1,7 @@
 import peewee as pw
 import pytest
 
-from pytest_peewee.redirect import install
+from pytest_peewee._redirect import install
 
 prod = pw.SqliteDatabase(None)
 analytics = pw.SqliteDatabase(None)

@@ -8,8 +8,8 @@ import playhouse.db_url as pwdb_url  # type: ignore[reportMissingTypeStubs]
 import pydantic
 import pytest
 
-from pytest_peewee.kwargs import Database, HostSpec, UserSpec
-from pytest_peewee.parse_env import parse_env
+from pytest_peewee._kwargs import Database, HostSpec, UserSpec
+from pytest_peewee._parse_env import parse_env
 
 from .hooks import scope
 
@@ -17,6 +17,8 @@ if TYPE_CHECKING:
     from collections.abc import Callable, Iterator, Mapping
 
 type sdict = dict[str, str]  # ruff: ignore[PYI042]
+type DatabaseFactory = Callable[[str], pw.Database]
+"""`database_from_env`: makes a test database from env vars with the given prefix."""
 
 _ENV_VARS = {
     "dbtype":   "DBDRIVER",
@@ -177,7 +179,7 @@ def setup_database(database_string: str, pytestconfig: pytest.Config) -> Iterato
 
 
 @pytest.fixture(scope=scope)
-def database_from_env(pytestconfig: pytest.Config) -> Iterator[Callable[[str], pw.Database]]:
+def database_from_env(pytestconfig: pytest.Config) -> Iterator[DatabaseFactory]:
     """Factory of extra test databases, configured like `database` from env vars with a prefix.
 
     `database_from_env("ANALYTICS_")` reads `ANALYTICS_DBDRIVER`, `ANALYTICS_DBHOST`, ... ;

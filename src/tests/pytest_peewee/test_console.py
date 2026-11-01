@@ -8,9 +8,10 @@ from rich.console import Console
 from rich.style import Style
 from rich.text import Text
 
-from pytest_peewee import RollbackDatabase, fmt
-from pytest_peewee.console import dialect, lint_messages
-from pytest_peewee.lint_highlight import lint_message
+from pytest_peewee import RollbackDatabase
+from pytest_peewee import _fmt as fmt
+from pytest_peewee._console import dialect, lint_messages
+from pytest_peewee._lint_highlight import lint_message
 
 from . import queries as qs
 
@@ -84,7 +85,7 @@ def test_lint_message_positions(database: RollbackDatabase, malformed: Malformed
 
 def test_agent_console(monkeypatch: pytest.MonkeyPatch):
     """`.print()` and `.lint()` print without colors for AI agents."""
-    from pytest_peewee import console as c  # ruff: ignore[PLC0415]
+    from pytest_peewee import _console as c  # ruff: ignore[PLC0415]
 
     monkeypatch.setenv("AI_AGENT", "third-grade-boatswain")
     assert not c.colored(c.console())
@@ -94,7 +95,7 @@ def test_agent_console(monkeypatch: pytest.MonkeyPatch):
 
 def test_print(capsys: pytest.CaptureFixture[str], database: RollbackDatabase, monkeypatch: pytest.MonkeyPatch):
     """The query is printed formatted, numbered and framed, with the caller under it."""
-    from pytest_peewee import console as c  # ruff: ignore[PLC0415]
+    from pytest_peewee import _console as c  # ruff: ignore[PLC0415]
 
     monkeypatch.setattr(c, "console", lambda _style="framed": Console(color_system=None, width=80))
     qs.maybe_bad_query(False).print()

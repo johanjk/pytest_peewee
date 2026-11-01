@@ -1,6 +1,6 @@
 import pytest
 
-from pytest_peewee.parse_env import parse_env
+from pytest_peewee._parse_env import parse_env
 
 
 @pytest.fixture

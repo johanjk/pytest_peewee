@@ -21,7 +21,7 @@ import playhouse  # type: ignore[reportMissingTypeStubs]
 import pytest
 from peewee import query_to_string
 
-from . import fmt
+from . import _fmt as fmt
 
 if TYPE_CHECKING:
     from collections.abc import Generator, Iterator

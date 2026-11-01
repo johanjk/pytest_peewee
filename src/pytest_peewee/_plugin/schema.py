@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING
 
 import pytest
 
-from pytest_peewee.isolation import POLICIES, IsolationPolicy, RollbackDatabase, isolate, under_test
+from pytest_peewee._isolation import POLICIES, IsolationPolicy, RollbackDatabase, isolate, under_test
 
 from .hooks import REDIRECT, scope
 
@@ -14,7 +14,7 @@ if TYPE_CHECKING:
 
     import peewee as pw
 
-    from pytest_peewee import redirect
+    import pytest_peewee._redirect as redirect
 
 
 @pytest.fixture(scope=scope)

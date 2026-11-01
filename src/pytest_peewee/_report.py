@@ -11,15 +11,17 @@ from rich.console import Console
 from rich.style import Style
 from rich.text import Text
 
-from . import console, fmt, frames
-from .isolation import FAILED_QUERY, failed_query
-from .output import run_dir
+from . import _console as console
+from . import _fmt as fmt
+from . import _frames as frames
+from ._isolation import FAILED_QUERY, failed_query
+from ._output import run_dir
 
 if TYPE_CHECKING:
     from collections.abc import Generator
     from pathlib import Path
 
-    from .redirect import Redirect
+    from ._redirect import Redirect
 
 
 def report_style(config: pytest.Config) -> console.ReportStyle:

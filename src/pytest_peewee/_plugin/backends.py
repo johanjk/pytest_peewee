@@ -9,7 +9,7 @@ import pytest
 if TYPE_CHECKING:
     from collections.abc import Iterator
 
-    from pytest_peewee.isolation import RollbackDatabase
+    from pytest_peewee._isolation import RollbackDatabase
 
 
 @pytest.fixture(scope="function")
