@@ -28,6 +28,7 @@ ignore = [
   "TC006", # Typecast as string
   "S101", # use of assert
   "PT003", # explicit 'function' scope fixtures
+  "TID252", # Relative imports
 ]
 [lint.per-file-ignores]
 # Workaround for cli '--select D' in 'poe docstyle'

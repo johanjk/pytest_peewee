@@ -5,8 +5,7 @@ from typing import TYPE_CHECKING, cast
 
 import pytest
 
-from pytest_peewee._isolation import POLICIES, IsolationPolicy, RollbackDatabase, isolate, under_test
-
+from .._isolation import POLICIES, IsolationPolicy, RollbackDatabase, isolate, under_test
 from .hooks import REDIRECT, scope
 
 if TYPE_CHECKING:
@@ -14,11 +13,11 @@ if TYPE_CHECKING:
 
     import peewee as pw
 
-    import pytest_peewee._redirect as redirect
+    from .._redirect import DatabaseMap
 
 
 @pytest.fixture(scope=scope)
-def database_redirect() -> Iterator[redirect.DatabaseMap]:
+def database_redirect() -> Iterator[DatabaseMap]:
     """Databases to redirect to test databases, for multi-database projects.
 
     `{source_database: test_database}`; a `DatabaseProxy` matches by itself, or by the database it was
@@ -48,7 +47,7 @@ def database_isolation(pytestconfig: pytest.Config) -> Iterator[IsolationPolicy]
 def setup_schema(
     setup_database: pw.Database,
     database_models: list[type[pw.Model]],
-    database_redirect: redirect.DatabaseMap,
+    database_redirect: DatabaseMap,
     pytestconfig: pytest.Config,
 ) -> Iterator[pw.Database]:
     """Creates the tables of `database_models`, outside of any test transaction.
@@ -64,7 +63,7 @@ def setup_schema(
             setup_database.drop_tables(database_models)
 
 
-def _mapped(mapping: redirect.DatabaseMap, main: pw.Database) -> list[pw.Database]:
+def _mapped(mapping: DatabaseMap, main: pw.Database) -> list[pw.Database]:
     """Test databases of `mapping` besides `main`, each once."""
     return list({id(database): database for database in mapping.values() if database is not main}.values())
 
@@ -83,7 +82,7 @@ def _isolated(databases: Iterable[pw.Database], policy: IsolationPolicy) -> Gene
 @pytest.fixture(scope="module")
 def module_database(
     setup_schema: pw.Database,
-    database_redirect: redirect.DatabaseMap,
+    database_redirect: DatabaseMap,
     database_isolation: IsolationPolicy,
     pytestconfig: pytest.Config,
 ) -> Iterator[RollbackDatabase]:
@@ -104,7 +103,7 @@ def module_database(
 @pytest.fixture(scope="function")
 def database(
     module_database: RollbackDatabase,
-    database_redirect: redirect.DatabaseMap,
+    database_redirect: DatabaseMap,
     database_isolation: IsolationPolicy,
     pytestconfig: pytest.Config,
 ) -> Iterator[RollbackDatabase]:

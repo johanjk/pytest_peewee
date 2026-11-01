@@ -8,9 +8,8 @@ import playhouse.db_url as pwdb_url  # type: ignore[reportMissingTypeStubs]
 import pydantic
 import pytest
 
-from pytest_peewee._kwargs import Database, HostSpec, UserSpec
-from pytest_peewee._parse_env import parse_env
-
+from .._kwargs import Database, HostSpec, UserSpec
+from .._parse_env import parse_env
 from .hooks import scope
 
 if TYPE_CHECKING:

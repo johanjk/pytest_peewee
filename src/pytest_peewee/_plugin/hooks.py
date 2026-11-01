@@ -4,10 +4,11 @@ from typing import TYPE_CHECKING, Literal, cast, get_args
 
 import pytest
 
-import pytest_peewee._console as console
-import pytest_peewee._frames as frames
-import pytest_peewee._redirect as redirect
-import pytest_peewee._report as report
+from .._console import agent
+from .._frames import traceback_style
+from .._redirect import Redirect
+from .._redirect import install as install_redirect
+from .._report import install_helpers, report_style
 
 if TYPE_CHECKING:
     from collections.abc import Generator
@@ -16,7 +17,7 @@ type ScopeName = Literal["session", "package", "module"]
 type UnavailablePolicy = Literal["xfail", "skip", "fail"]
 
 
-REDIRECT = pytest.StashKey[redirect.Redirect]()
+REDIRECT = pytest.StashKey[Redirect]()
 """Redirect frames of this session."""
 
 
@@ -62,19 +63,19 @@ def pytest_configure(config: pytest.Config) -> None:
     They are patched with monkeypatch, so a nested session (pytester) restores the outer one's.
     For AI agents, colors are turned off, before pytest's terminal reporter reads the option.
     """
-    if console.agent():
+    if agent():
         config.option.color = "no"
     value = config.getini("peewee_unavailable")
     if value not in get_args(UnavailablePolicy.__value__):
         msg = f"peewee_unavailable must be one of {get_args(UnavailablePolicy.__value__)}, got {value!r}"
         raise pytest.UsageError(msg)
-    style = report.report_style(config)
-    frames.traceback_style(config)  # validate
+    style = report_style(config)
+    traceback_style(config)  # validate
 
     mp = pytest.MonkeyPatch()
     config.add_cleanup(mp.undo)
-    config.stash[REDIRECT] = redirect.install(mp)
-    report.install_helpers(mp, config.stash[REDIRECT], style)
+    config.stash[REDIRECT] = install_redirect(mp)
+    install_helpers(mp, config.stash[REDIRECT], style)
 
 
 @pytest.hookimpl(wrapper=True)
