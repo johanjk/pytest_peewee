@@ -2,6 +2,9 @@
 
 The database can be configured in a number of ways. The [env-var](#env-var-configuration) method is recommended.
 
+The examples below use `scope="module"`, the default of the `peewee_scope` ini option.
+If you change `peewee_scope`, override with `@pytest.fixture(scope=pytest_peewee.scope)` instead.
+
 ## Default configuration
 
 Set a default configuration that matches your specific development environment.
@@ -13,7 +16,7 @@ import pytest
 @pytest.fixture(scope="module")
 def database_default_kwargs():
     yield {
-        'dbtype': 'postgresext',
+        'dbtype': 'psycopg3',
         'host': '127.0.0.1',
         'port': '5432',
         'database': 'test_db',
@@ -27,7 +30,7 @@ def database_default_kwargs():
 In the simplest of cases, set the following env vars to match your configuration before running tests:
 
 ```bash
-export DBDRIVER="postgresext"
+export DBDRIVER="psycopg3"
 export DBHOST="localhost"
 export DBPORT="5432"
 export DBDATABASE="test_db"
@@ -55,7 +58,7 @@ def database_default_envvar():
 
 ```toml
 [envs.default.env-vars]
-DBDRIVER = "postgresext"
+DBDRIVER = "psycopg3"
 DBHOST = "localhost"
 DBPORT = "5432"
 DBDATABASE = "test_db"
@@ -89,13 +92,13 @@ uv run poe test
 
 ## Connection configuration
 
-This is equivalent to [Default configuration](#default-configuration), but happens after env var replacement.
+Like [Default configuration](#default-configuration), but final: env vars and defaults are no longer applied.
 
 ```python
 @pytest.fixture(scope="module")
-def database_kwargs(database_envvar, database_default_kwargs):
+def database_kwargs():
     yield {
-        'dbtype': 'postgresext',
+        'dbtype': 'psycopg3',
         'host': '127.0.0.1',
         'port': '5432',
         'database': 'test_db',
@@ -112,7 +115,7 @@ Note that this will bypass connection string validation.
 ```python
 @pytest.fixture(scope="module")
 def database_string(database_kwargs, database_params):
-    yield 'postgresext//dbuser:secret@127.0.0.1:5432/test_db'
+    yield 'psycopg3://dbuser:secret@127.0.0.1:5432/test_db'
 ```
 
 ## Database Instance
@@ -120,7 +123,13 @@ def database_string(database_kwargs, database_params):
 If full configuration control is required, override the following:
 
 ```python
+from playhouse.postgres_ext import Psycopg3Database
+
 @pytest.fixture(scope="module")
-def setup_database(database_string):
-    yield pw.Database('test_db')
+def setup_database():
+    database = Psycopg3Database(
+        'test_db', host='127.0.0.1', port=5432, user='dbuser', password='secret',
+    )
+    with database.connection_context():
+        yield database
 ```

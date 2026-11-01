@@ -1,0 +1,3 @@
+# Unavailable database makes the test error (test_unavailable: test_policy).
+[tool.pytest]
+peewee_unavailable = "fail"

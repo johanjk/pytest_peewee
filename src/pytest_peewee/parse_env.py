@@ -1,29 +1,27 @@
 import os
 import re
+from typing import TYPE_CHECKING
 
-REGEX = r"\$([A-Z_][A-Z0-9_]+)"
-envsub: re.Pattern[str] = re.compile(REGEX)
+if TYPE_CHECKING:
+    from collections.abc import Mapping
 
-type NDict = dict[str, str | NDict]
+ENV_VAR: re.Pattern[str] = re.compile(
+    r"""
+    \$
+    (?:
+        ([A-Za-z_]\w*)      # $NAME, group 1
+      | \{([A-Za-z_]\w*)\}  # ${NAME}, group 2
+    )
+    """,
+    re.VERBOSE,
+)
 
 
-def _env_replace(x: re.Match[str]) -> str:
-    env_var = x.groups()[0]
-    return os.environ.get(env_var, "")
+def _env_value(match: re.Match[str]) -> str:
+    # Unset variables become empty, so 'database_kwargs' falls back to the defaults.
+    return os.environ.get(match[1] or match[2], "")
 
 
-def parse_env[T: NDict](args: T) -> T:
-    """Replace dict values that looks 'env-like' with env variables."""
-    def inner[TI: NDict](args: TI) -> TI:
-        for i, value in args.items():
-            match value:
-                case dict():
-                    args[i] = inner(value)
-                case str():
-                    args[i] = envsub.sub(_env_replace, value)
-                case _:
-                    msg = f"Found unhandled type {type(value)} in dict"
-                    raise NotImplementedError(msg)
-        return args
-
-    return inner(args)
+def parse_env(kwargs: Mapping[str, str]) -> dict[str, str]:
+    """Copy of `kwargs`, with env var references ($NAME or ${NAME}) in its values replaced."""
+    return {key: ENV_VAR.sub(_env_value, value) for key, value in kwargs.items()}

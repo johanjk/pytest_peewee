@@ -1,0 +1,3 @@
+# Unknown fixture scope; must be a usage error (test_schema: test_invalid_scope).
+[tool.pytest]
+peewee_scope = "multiverse"

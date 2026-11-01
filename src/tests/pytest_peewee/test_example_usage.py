@@ -1,32 +1,32 @@
-import textwrap
-from contextlib import nullcontext as does_not_raise
-
 import peewee as pw
 import pytest
 
+from .test_isolation import assert_not_rewrapped
 
-class SomeTable(pw.Model):  # noqa: D101
+
+class SomeTable(pw.Model):  # ruff: ignore[D101]
     x = pw.IntegerField()
 
 
-def test_nada(database):
-    """Database fixture can be used."""
+@pytest.fixture(scope="module")
+def database_models():
+    """Tables created once for the module."""
+    yield [SomeTable]
 
 
 def test_create_no_database():
-    """No database wont work."""
+    """Tests not requesting a database get no redirect, so unbound models have no database."""
     with pytest.raises(pw.ImproperlyConfigured):
         SomeTable.create_table()
 
 
 def test_create(database):
-    """Can create table, and is bound."""
-    SomeTable.create_table()
+    """Table from 'database_models' exists, and is bound."""
+    assert SomeTable.table_exists()
 
 
 def test_database(database):
     """Can insert and retrieve."""
-    SomeTable.create_table()
     SomeTable.insert(x=2).execute(database)
 
     query = (
@@ -38,7 +38,6 @@ def test_database(database):
 
 def test_without_bind(database):
     """Queries doesn't have to be bound."""
-    SomeTable.create_table()
     SomeTable.insert(x=2).execute()
     SomeTable.insert(x=2).execute(database)
 
@@ -49,43 +48,32 @@ def test_without_bind(database):
     assert query.scalar(database) == 2
 
 
-def test_no_rebind(database):
-    """Swapping away from the test database is ignored."""
-    SomeTable._meta.database = 22
-    assert SomeTable._meta.database is database
+def test_rebind_is_respected(database):
+    """Binding during a test is respected for that test."""
+    other = pw.SqliteDatabase(":memory:")
+    SomeTable.bind(other)
+    assert SomeTable._meta.database is other
 
 
-def test_database_recreate(database):
-    """Sanity check that re-reaction will fail."""
-    SomeTable.create_table()
-    with pytest.raises((pw.OperationalError, pw.ProgrammingError)):
-        # mysql and sqlite raises 'pw.OperationalError' but postgres 'pw.ProgrammingError'
-        SomeTable.create_table(safe=False)
+def test_rebind_is_reverted(run_testpath):
+    """Binding from one test does not leak into the next."""
+    run_testpath("example_usage/rebind.py").assert_outcomes(passed=2)
 
 
 def test_bad_query(database):
-    """Malformed queries are pretty-printed."""
+    """A failing query keeps the driver error, with the query added as a note."""
     q = SomeTable.select()
     query = q.select_from(q.c.value)  # q has no 'value' column and will fail
 
     with pytest.raises(pw.DatabaseError) as target:
         query.execute()
 
-    txt = str(target.value)
-    assert txt != str(query)
-    assert len(txt.split("\n")) == 6, txt
-    exp = textwrap.dedent("""\
-    SELECT "t1"."value"
-    FROM (SELECT
-        "t2"."id",
-        "t2"."x"
-    FROM "sometable" AS "t2") AS "t1"
-    """).rstrip()
+    # Original driver error is kept, the query is added as a note.
+    assert_not_rewrapped(target.value)
+    exp = 'SELECT "t1"."value" FROM (SELECT "t2"."id", "t2"."x" FROM "sometable" AS "t2") AS "t1"'
     if isinstance(database, pw.MySQLDatabase):
         exp = exp.replace('"', '`')
-    assert exp in txt
-
-    assert query.lint()
+    assert f"peewee query: {exp}" in target.value.__notes__
 
 
 def test_query_without_bind(database):
@@ -94,27 +82,8 @@ def test_query_without_bind(database):
     assert list(q.execute()) == [(1,)]
 
 
-def test_query_no_rebind(database):
-    """Swapping away from the test database is ignored."""
-    q = pw.RawQuery("SELECT 1").tuples()
-    q.bind(22)
-    assert list(q.execute()) == [(1,)]
-    q._database = 22
-    assert list(q.execute()) == [(1,)]
-
-
-def test_close_open(database):
-    """Swapping away from the test database is ignored."""
-    assert not database.is_closed()
-
-    database.close()
-    assert database.is_closed()
-    assert not database._state.closed
-
-    database.connect()
-    assert not database.is_closed()
-    assert not database._state.closed
-
-    database.close()
-    assert database.is_closed()
-    assert not database._state.closed
+def test_query_bound_elsewhere(database):
+    """A query bound to another database still runs on the test database."""
+    other = pw.SqliteDatabase(":memory:")  # has no 'sometable'
+    SomeTable.create(x=1)
+    assert SomeTable.select().bind(other).count() == 1

@@ -1,45 +1,56 @@
 """pytest-peewee: pytest extensions for peewee."""
 
+from .isolation import IsolationError, IsolationWarning, RollbackDatabase
 from .plugin import (
     cockroach,
     database,
     database_default_envvar,
     database_default_kwargs,
+    database_from_env,
+    database_isolation,
     database_kwargs,
+    database_models,
     database_params,
+    database_redirect,
     database_string,
+    module_database,
     mysql,
-    post_hook_database,
-    post_transaction_database,
     postgres,
-    pre_hook_database,
-    pre_transaction_database,
+    pytest_addoption,
+    pytest_configure,
+    pytest_runtest_protocol,
+    pytest_unconfigure,
+    scope,
     setup_database,
+    setup_schema,
     sqlite,
 )
-from .query_error import query_error
-from .transaction import transaction
-from .types import DebugContext, DebugQuery, RollbackDatabase
-from .use_database import query_helpers, use_database
+from .report import pytest_runtest_makereport
+from .types import DebugContext, DebugQuery
 from .version import __version__, __version_tuple__
 
 __all__ = [
+    "DebugContext",
+    "DebugQuery",
+    "IsolationError",
+    "IsolationWarning",
+    "RollbackDatabase",
     "cockroach",
     "database",
     "database_default_envvar",
     "database_default_kwargs",
+    "database_from_env",
+    "database_isolation",
     "database_kwargs",
+    "database_models",
     "database_params",
+    "database_redirect",
     "database_string",
-    "DebugContext",
-    "DebugQuery",
+    "module_database",
     "mysql",
-    "post_hook_database",
-    "post_transaction_database",
     "postgres",
-    "pre_hook_database",
-    "pre_transaction_database",
-    "RollbackDatabase",
+    "scope",
     "setup_database",
+    "setup_schema",
     "sqlite",
 ]

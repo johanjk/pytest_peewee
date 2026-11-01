@@ -3,7 +3,7 @@ name = "pytest-peewee"
 dynamic = ["version"]
 description = 'Pytest testing extensions for Peewee.'
 readme = "README.md"
-requires-python = ">=3.12"
+requires-python = ">=3.14"
 license = "MIT"
 keywords = [
   "test",
@@ -23,31 +23,30 @@ classifiers = [
   "Framework :: Pytest",
   "Operating System :: OS Independent",
   "Intended Audience :: Developers",
+  "Topic :: Software Development :: Testing",
 
   "Programming Language :: Python",
-  "Programming Language :: Python :: 3.12",
-  "Programming Language :: Python :: 3.13",
   "Programming Language :: Python :: 3.14",
+  "Programming Language :: Python :: 3.15",
 ]
 dependencies = [
-  "peewee>=3.13.3",
-  "pytest>=6.1.2",
+  "peewee>=4.2.4",
+  "pytest>=9.0.0",
   "sqlfluff>=3.5.0",
   "pydantic>=2.5.2",
   "rich>=14.2.0",
+  "pygments>=2.21.0",
 ]
 [dependency-groups]
 test = [
   "coverage[toml]>=6.5",
-  "pytest>=9.0.0",
-  "pytest-html",
   "mktestdocs",
 ]
 dev = [
   "psycopg",
   "psycopg-binary",
   "pymysql",
-  "poethepoet",
+  "poethepoet>=0.45",
   "ruff",
   "deptry",
 ]
@@ -104,11 +103,14 @@ sources = ["src"]
 "poe_tasks.toml" = "poe_tasks.toml"
 "scripts" = "scripts"
 "dev.sh" = "dev.sh"
+"docs" = "docs"
+"src/tests/pytest_peewee/tester" = "src/tests/pytest_peewee/tester"
 
 [tool.coverage.run]
-source_pkgs = ["pytest_peewee", "tests"]
+source_pkgs = ["pytest_peewee"]
 branch = true
 parallel = true
+patch = ["subprocess"]
 omit = [
   "src/pytest_peewee/version.py",
   "**/site-packages/**",
@@ -118,7 +120,6 @@ omit = [
 
 [tool.coverage.paths]
 pytest_peewee = ["src/pytest_peewee"]
-tests = ["src/tests"]
 
 [tool.coverage.report]
 omit = [
@@ -128,12 +129,9 @@ omit = [
 exclude_lines = [
   "pragma: no cover",
   "def __repr__",
-  "if self.debug:",
-  "if settings.DEBUG",
   "raise AssertionError",
   "raise NotImplementedError",
   "if 0:",
-  "import",
   "__version__",
   "no cov",
   "if __name__ == .__main__.:",
@@ -141,14 +139,11 @@ exclude_lines = [
 ]
 
 [tool.pytest]
-generate_report_on_test = true
 addopts = [
   "-ra",
   "--strict-markers",
   "--strict-config",
   "--color=yes",
-  "--html=./report.html",
-  "--self-contained-html",
   "--no-header",
 ]
 testpaths = ["src/tests"]
@@ -167,7 +162,7 @@ exclude = [
   "src/pytest_peewee/version.py",
   "**/tests/**",
 ]
-pythonVersion = "3.12"
+pythonVersion = "3.14"
 typeCheckingMode = "strict"
 reportUnusedImport = false
 deprecateTypingAliases = true

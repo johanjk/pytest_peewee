@@ -2,12 +2,12 @@ import peewee as pw
 import pytest
 
 
-class DDLTable(pw.Model):  # noqa: D101
+class DDLTable(pw.Model):  # ruff: ignore[D101]
     pass
 
 
 @pytest.fixture(scope="module")
-def setup_database(setup_database):  # noqa: D103
+def setup_database(setup_database):  # ruff: ignore[D103]
     DDLTable.bind(setup_database)
     # Must bind (this is pre-hook)
     DDLTable.drop_table()

@@ -1,0 +1,3 @@
+# Unknown unavailable policy; must be a usage error (test_unavailable: test_invalid_policy).
+[tool.pytest]
+peewee_unavailable = "maybe"

@@ -1,10 +1,10 @@
-from typing import ClassVar, override
-from urllib.parse import quote_plus, urlencode
+from typing import ClassVar, Self, override
+from urllib.parse import quote, urlencode
 
 import pydantic
 
 
-class BaseModel(pydantic.BaseModel):  # noqa: D101
+class BaseModel(pydantic.BaseModel):  # ruff: ignore[D101]
     model_config: ClassVar[pydantic.ConfigDict] = pydantic.ConfigDict(frozen=True, extra="forbid")
 
 
@@ -18,63 +18,82 @@ class UserSpec(BaseModel):
     user: str
     password: str | None
 
-    @override
-    def __str__(self) -> str:
-        return ":".join(map(quote_plus, filter(None, [self.user, self.password])))
-
-
-class HostSpecBlock(BaseModel):
-    """DB host.
-
-    Single host.
-        [host][:port][,...]
-    """
-    host: str | None
-    port: str | None
-
     @pydantic.model_validator(mode="after")
-    def check_host_or_port(self):
-        """Require host or port."""
-        if not self.host and not self.port:
-            msg = "either 'host' or 'port' is required"
+    def check_user(self) -> Self:
+        """Require a user with a password, it would otherwise be read as the user."""
+        if self.password and not self.user:
+            msg = "'password' requires 'user'"
             raise ValueError(msg)
         return self
 
     @override
     def __str__(self) -> str:
-        return "".join(filter(None, [
-            quote_plus(self.host) if self.host else None,
-            f":{self.port}" if self.port else None]
-        ))
+        """Percent-encoded, peewee decodes with 'unquote' (not 'unquote_plus')."""
+        return ":".join(quote(p, safe="") for p in filter(None, [self.user, self.password]))
+
+
+class HostSpec(BaseModel):
+    """DB host.
+
+    Single host, peewee does not support multiple.
+        [host][:port]
+    """
+
+    host: str | None
+    port: int | None
+
+    @pydantic.model_validator(mode="after")
+    def check_host_or_port(self) -> Self:
+        """Require host or port, and a host expressible in an url."""
+        if not self.host and not self.port:
+            msg = "either 'host' or 'port' is required"
+            raise ValueError(msg)
+        if self.host and self.host.startswith("/"):
+            msg = "unix socket hosts are not supported in urls, override 'setup_database' to pass them"
+            raise ValueError(msg)
+        return self
+
+    @override
+    def __str__(self) -> str:
+        """Host as is, urlparse does not decode it; IPv6 in brackets."""
+        host = f"[{self.host}]" if self.host and ":" in self.host else self.host
+        return "".join(filter(None, [host, f":{self.port}" if self.port else None]))
 
 
 class Database(BaseModel):
     """Database kwargs validation."""
 
-    model_config: ClassVar[pydantic.ConfigDict] = pydantic.ConfigDict(frozen=True, extra="forbid")
-
     dbtype: str
-    conn: list[HostSpecBlock] | None
+    conn: HostSpec | None
     database: str | None
     cred: UserSpec | None
     params: dict[str, str] = pydantic.Field(default_factory=dict)
+
+    @pydantic.field_validator("database")
+    @classmethod
+    def check_database(cls, value: str | None) -> str | None:
+        """Peewee does not decode the path, so '?' and '#' cannot be escaped."""
+        if value and ("?" in value or "#" in value):
+            msg = "'database' cannot contain '?' or '#' in urls"
+            raise ValueError(msg)
+        return value
 
     @override
     def __str__(self) -> str:
         """Build connection string.
 
-        postgresql://[userspec@][hostspec][/dbname][?paramspec]
+        dbtype://[userspec@][hostspec][/database][?paramspec]
             user[:password]
-            [host][:port][,...]
+            [host][:port]
             name=value[&...]
         See:
-            https://www.postgresql.org/docs/current/libpq-connect.html#LIBPQ-CONNSTRING-URIS
+            http://docs.peewee-orm.com/en/latest/peewee/playhouse.html#db-url
         """
         conn_str = f"{self.dbtype}://"
-        if u := self.cred:
-            conn_str += f"{u}@"
+        if (u := self.cred) and (us := str(u)):
+            conn_str += f"{us}@"
         if h := self.conn:
-            conn_str += ",".join(map(str, h))
+            conn_str += str(h)
         if d := self.database:
             conn_str += f"/{d}"
         if p := self.params:

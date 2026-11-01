@@ -1,17 +1,10 @@
 from abc import abstractmethod
-from collections.abc import Callable
-from contextlib import AbstractContextManager
 
 import peewee as pw
 
-type DatabaseCtx = Callable[[pw.Database], AbstractContextManager[None]]
+from .isolation import RollbackDatabase
 
-type Tr = pw._transaction  # type: ignore[reportPrivateUsage] # noqa: SLF001
-
-
-class RollbackDatabase(pw.Database):
-    """Transaction rollback patched database."""
-    _mock_closed: bool = False
+__all__ = ["DebugContext", "DebugHelper", "DebugQuery", "RollbackDatabase"]
 
 
 class DebugHelper:
@@ -19,6 +12,7 @@ class DebugHelper:
     @abstractmethod
     def print(self, subtext: str | None = None) -> None:
         """Pretty print a formatted and syntax highlighted SQL of this."""
+
     @abstractmethod
     def lint(self, subtext: str | None = None) -> bool:
         """Pretty linting of this query.

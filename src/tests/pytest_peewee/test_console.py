@@ -1,89 +1,109 @@
+import re
+from pathlib import Path
+from typing import NamedTuple
+
 import peewee as pw
 import pytest
 from rich.console import Console
+from rich.style import Style
+from rich.text import Text
 
-from pytest_peewee import DebugQuery, RollbackDatabase
+from pytest_peewee import RollbackDatabase, fmt
+from pytest_peewee.console import dialect, lint_messages
+from pytest_peewee.lint_highlight import lint_message
 
-
-class OtherTable(pw.Model):  # noqa: D101
-    x = pw.IntegerField()
-    y = pw.TextField()
-
-
-@pytest.fixture(scope="function")
-def database(database: RollbackDatabase):  # noqa: D103
-    OtherTable.create_table()
-    yield database
-    if database.is_connection_usable():
-        OtherTable.drop_table()
+from . import queries as qs
 
 
-def maybe_bad_query(fail: bool) -> DebugQuery:
-    """Query with possible wrong selector."""
-    a = OtherTable.alias("sq")
-    subq = a.select(a.x)
-
-    on_clause = a.x if fail else subq.c.x
-    # Target the inner name or the correct outer name
-
-    return (
-        OtherTable
-        .select()
-        .join(subq, on=(on_clause == OtherTable.x))
-    )
+@pytest.fixture(scope="module")
+def database_models():  # ruff: ignore[D103]
+    yield [qs.OtherTable]
 
 
 def test_query_lint_ok(database: RollbackDatabase):
     """Expect lint ok error."""
-    assert maybe_bad_query(False).lint()
+    assert qs.maybe_bad_query(False).lint()
 
 
-def test_query_lint_err(capsys: pytest.CaptureFixture[str], database: RollbackDatabase):
-    """Expect lint error."""
-    assert not maybe_bad_query(True).lint()  # Lint should fail
+class Malformed(NamedTuple):
+    """Malformed query, the lint error it produces, and words its message must and must not color."""
+
+    code: str
+    query: pw.Query
+    keywords: set[str]
+    plain: set[str]
+
+
+@pytest.fixture(params=[
+    pytest.param(("RF01", qs.wrong_selector, {"FROM"}, {"Reference", "clause"}), id="RF01"),
+    pytest.param(("CV05", qs.compare_to_null, {"NULL", "IS", "NOT"}, {"Comparisons"}), id="CV05"),
+    pytest.param(("ST03", qs.unused_cte, set(), {"CTE", "Query"}), id="ST03"),
+    pytest.param(("PRS", qs.unparsable_with_string, {"AND"}, {"Found", "unparsable"}), id="PRS"),
+])
+def malformed(request: pytest.FixtureRequest) -> Malformed:
+    """Malformed queries, by the lint error they produce."""
+    code, make_query, keywords, plain = request.param
+    return Malformed(code, make_query(), keywords, plain)
+
+
+def test_query_lint_err(capsys: pytest.CaptureFixture[str], database: RollbackDatabase, malformed: Malformed):
+    """`.lint()` fails on malformed queries, printing the lint error with its SQL words colored."""
+    assert not malformed.query.lint()
 
     stdout = capsys.readouterr().out
     print(stdout)
-    match database:
-        case pw.PostgresqlDatabase():
-            assert "RF01" in stdout and "Reference '\"sq\".\"x\"'" in stdout  # noqa: PT018
-        case pw.MySQLDatabase():
-            assert "RF01" in stdout and "Reference '`sq`.`x`'" in stdout  # noqa: PT018
-        case pw.SqliteDatabase():
-            assert "RF01" in stdout and "Reference '\"sq\".\"x\"'" in stdout  # noqa: PT018
-        case _:
-            assert False
-    assert stdout.count(":") == 1  # Only one lint error
+    assert f"{malformed.code}: " in Text.from_ansi(stdout).plain
+    for keyword in malformed.keywords:
+        assert re.search(rf"\x1b\[[;\d]*m{keyword}\x1b\[0m", stdout), keyword
+
+
+def colored(text: Text) -> set[str]:
+    """Words of `text` with a color."""
+    return {text.plain[span.start:span.end].strip() for span in text.spans if Style.parse(str(span.style)).color} - {""}
+
+
+def test_lint_message_coloring(database: RollbackDatabase, malformed: Malformed):
+    """Lint messages keep their text; quoted SQL and SQL words are highlighted, other words are not."""
+    _, warns = fmt.lint_query(malformed.query, database)
+    (desc,) = {d for c, d in lint_messages(warns) if c == malformed.code}
+    text = lint_message(desc, dialect(database))
+    assert text.plain == desc
+    assert malformed.keywords <= colored(text)
+    assert not malformed.plain & colored(text)
+
+
+def test_lint_message_positions(database: RollbackDatabase, malformed: Malformed):
+    """With positions, each lint code starts with the spans of its occurrences."""
+    _, warns = fmt.lint_query(malformed.query, database)
+    plain = lint_messages(warns)
+    positioned = lint_messages(warns, positions=True)
+    assert [d for _, d in positioned] == [d for _, d in plain]
+    for (code, _), (label, _) in zip(plain, positioned, strict=True):
+        assert re.fullmatch(rf"(L\d+:\d+(-(L\d+:)?\d+)? )+{code}", label)
 
 
 def test_print(capsys: pytest.CaptureFixture[str], database: RollbackDatabase, monkeypatch: pytest.MonkeyPatch):
-    """Check output is close to the expected query (color matching is not attempted)."""
-    # disable colors for easier comparison
-    with monkeypatch.context() as m:
-        from pytest_peewee import console as c
-        m.setattr(c, "console", lambda: Console(color_system=None))
+    """The query is printed formatted, numbered and framed, with the caller under it."""
+    from pytest_peewee import console as c  # ruff: ignore[PLC0415]
 
-        maybe_bad_query(False).print()
+    monkeypatch.setattr(c, "console", lambda: Console(color_system=None, width=80))
+    qs.maybe_bad_query(False).print()
+    source = Path(__file__).read_text(encoding="utf-8").splitlines()
+    lineno = next(i for i, line in enumerate(source, 1) if line.strip() == "qs.maybe_bad_query(False).print()")
 
-    stdout = capsys.readouterr().out
-    print(stdout)
-
-
-    exp = """\
-    ╭──────────────────────────────────────────────────────────────────────────────╮
-    │   1 WITH t2 AS (SELECT "sq"."x" FROM "othertable" AS "sq")                   │
-    │   2                                                                          │
-    │   3 SELECT                                                                   │
-    │   4     "t1"."id",                                                           │
-    │   5     "t1"."x",                                                            │
-    │   6     "t1"."y"                                                             │
-    │   7 FROM "othertable" AS "t1"                                                │
-    │   8 INNER JOIN t2 ON ("t1"."x" = "t2"."x")                                   │
-    │ [...]/tests/pytest_peewee/test_console.py:67                                 │
-    ╰──────────────────────────────────────────────────────────────────────────────╯
-    """
-    assert __file__[:c.console().width-4] in stdout
-    # long filepath can be word_wrapped, slice first part - Panel size
-
-    assert len(stdout.split("\n")) >= len(exp.split("\n"))
-    # can be larger if filepath is longer than terminal width
+    sql = [
+        'WITH t2 AS (SELECT "sq"."x" FROM "othertable" AS "sq")',
+        "",
+        "SELECT",
+        '    "t1"."id",',
+        '    "t1"."x",',
+        '    "t1"."y"',
+        'FROM "othertable" AS "t1"',
+        'INNER JOIN t2 ON ("t1"."x" = "t2"."x")',
+    ]
+    if isinstance(database, pw.MySQLDatabase):
+        sql = [line.replace('"', "`") for line in sql]
+    caller = f"Called from: {Path(__file__).relative_to(Path.cwd())}:{lineno}"
+    body = [f"{i:>3} {line}".rstrip() for i, line in enumerate(sql, 1)] + [caller]
+    expected = ["╭" + "─" * 78 + "╮", *(f"│ {line:<76} │" for line in body), "╰" + "─" * 78 + "╯"]
+    assert capsys.readouterr().out.splitlines() == expected

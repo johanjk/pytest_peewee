@@ -1,0 +1,3 @@
+# Unavailable database skips the test, also with --runxfail (test_unavailable: test_policy).
+[tool.pytest]
+peewee_unavailable = "skip"

@@ -2,12 +2,12 @@ import peewee as pw
 import pytest
 
 
-class InterfereTable(pw.Model):  # noqa: D101
+class InterfereTable(pw.Model):  # ruff: ignore[D101]
     x = pw.IntegerField()
 
 
 @pytest.fixture(scope="module")
-def setup_database(setup_database):  # noqa: D103
+def setup_database(setup_database):  # ruff: ignore[D103]
     InterfereTable.bind(setup_database)
     # Must bind (this is pre-hook)
 
@@ -19,14 +19,15 @@ def setup_database(setup_database):  # noqa: D103
 
 
 @pytest.fixture
-def database(database):  # noqa: D103
+def database(database):  # ruff: ignore[D103]
     assert InterfereTable.table_exists()
     yield database
 
 
 def count_number(num: int, pos: bool = True) -> int:
     """Count rows where 'x' is/isn't num."""
-    case = (InterfereTable.x == num) if pos else (InterfereTable.x != num)
+    matching = (InterfereTable.x == num)
+    case = matching == pos
     return InterfereTable.select(InterfereTable.x).where(case).count()
 
 
@@ -37,6 +38,7 @@ def no_interference(num: int):
     InterfereTable.insert(x=num).execute()
     assert count_number(num) == 1
     assert count_number(num, False) == 0
+
 
 def test_insert_one(database):
     """Expect no test interference between cases."""

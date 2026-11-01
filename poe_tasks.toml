@@ -23,15 +23,17 @@ sequence = ["setup", "test", "teardown"]
 help = "Run test suite with setup/teardown"
 
 [tasks.test-cov]
-cmd = "coverage run -m pytest src/tests"
-help = "Run tests with coverage tracking"
+sequence = [
+  { cmd = "coverage erase" },
+  { cmd = "coverage run -m pytest src/tests $POE_EXTRA_ARGS" },
+]
+help = "Run tests with coverage tracking, from a clean slate"
 
 [tasks.cov-report]
 sequence = [
   { cmd = "coverage combine" },
   { cmd = "coverage report" },
 ]
-ignore_fail = true
 help = "Combine and display coverage results"
 
 [tasks.cov]
@@ -48,7 +50,7 @@ help = "Check dependency usage with deptry"
 [tasks.lint]
 cmd = "ruff check --ignore D"
 [tasks.docstyle]
-cmd = "ruff check --select D2"
+cmd = "ruff check --select D"
 [tasks.fmt]
 sequence = [
   { cmd = "ruff check --select I --select F401 --fix" },
@@ -65,7 +67,7 @@ ignore_fail = false
 # TYPE CHECKING TASKS
 # ------------------------------------------------------------------------------
 [tasks."types:check"]
-cmd = "pyright src/pytest_peewee src/tests"
+cmd = "pyright"
 help = "Run Pyright static type checker"
 
 [tasks."types:check-mypy"]
@@ -141,5 +143,10 @@ DBPASSWORD = ""
 # COMPOSITE MATRIX RUNNER
 # ------------------------------------------------------------------------------
 [tasks."test:all-dbs"]
-sequence = ["test:postgres", "test:mysql", "test:sqlite"]
+sequence = [
+  { ref = "test:postgres $POE_EXTRA_ARGS" },
+  { ref = "test:mysql $POE_EXTRA_ARGS" },
+  { ref = "test:sqlite $POE_EXTRA_ARGS" },
+]
+ignore_fail = "return_non_zero"
 help = "Run unit tests sequentially across PostgreSQL, MySQL, and SQLite"

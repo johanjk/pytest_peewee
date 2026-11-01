@@ -1,0 +1,3 @@
+# Report without panel or line numbers, for copying (test_report: plain report, nested session).
+[tool.pytest]
+peewee_report = "plain"

@@ -1,0 +1,54 @@
+"""`database`, skipping the test unless it is of a given backend."""
+
+from typing import TYPE_CHECKING
+
+import peewee as pw
+import playhouse.cockroachdb as pwc  # type: ignore[reportMissingTypeStubs]
+import pytest
+
+if TYPE_CHECKING:
+    from collections.abc import Iterator
+
+    from pytest_peewee.isolation import RollbackDatabase
+
+
+@pytest.fixture(scope="function")
+def sqlite(database: RollbackDatabase) -> Iterator[RollbackDatabase]:
+    """Sqlite database."""
+    if not isinstance(database, pw.SqliteDatabase):
+        pytest.skip("Not an sqlite database.")
+        return
+
+    yield database
+
+
+@pytest.fixture(scope="function")
+def postgres(database: RollbackDatabase) -> Iterator[RollbackDatabase]:
+    """Postgres database; not Cockroach, though peewee's `CockroachDatabase` subclasses `PostgresqlDatabase`."""
+    match database:
+        case pwc.CockroachDatabase():
+            pytest.skip("Not a postgres database, but Cockroach.")
+        case pw.PostgresqlDatabase():
+            yield database
+        case _:
+            pytest.skip("Not a postgres database.")
+
+
+@pytest.fixture(scope="function")
+def mysql(database: RollbackDatabase) -> Iterator[RollbackDatabase]:
+    """MySQL database."""
+    if not isinstance(database, pw.MySQLDatabase):
+        pytest.skip("Not a MySQL database.")
+        return
+
+    yield database
+
+
+@pytest.fixture(scope="function")
+def cockroach(database: RollbackDatabase) -> Iterator[RollbackDatabase]:
+    """Cockroachdb database."""
+    if not isinstance(database, pwc.CockroachDatabase):
+        pytest.skip("Not a Cockroach database.")
+        return
+
+    yield database

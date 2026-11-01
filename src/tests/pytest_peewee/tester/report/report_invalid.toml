@@ -1,0 +1,3 @@
+# Unknown report style; must be a usage error (test_report: test_invalid_report).
+[tool.pytest]
+peewee_report = "boxed"

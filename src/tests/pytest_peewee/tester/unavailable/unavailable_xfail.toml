@@ -1,0 +1,3 @@
+# Unavailable database is an expected failure, set explicitly (test_unavailable: test_policy).
+[tool.pytest]
+peewee_unavailable = "xfail"
