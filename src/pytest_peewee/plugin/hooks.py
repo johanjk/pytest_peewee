@@ -4,16 +4,14 @@ from typing import TYPE_CHECKING, Literal, get_args
 
 import pytest
 
-from pytest_peewee import console, redirect, report
+from pytest_peewee import console, frames, redirect, report
 
 if TYPE_CHECKING:
-    from collections.abc import Iterator
+    from collections.abc import Generator
 
 type ScopeName = Literal["session", "package", "module"]
 type UnavailablePolicy = Literal["xfail", "skip", "fail"]
 
-_patches = pytest.StashKey[pytest.MonkeyPatch]()
-"""Global patches of this config: database redirect and query debug helpers."""
 
 REDIRECT = pytest.StashKey[redirect.Redirect]()
 """Redirect frames of this session."""
@@ -36,6 +34,11 @@ def pytest_addoption(parser: pytest.Parser) -> None:
         "Failed queries, .print() and .lint(): framed (panel, line numbers) or plain (copyable). "
         "Unset: plain when the AI_AGENT env var is set, framed otherwise.",
         default=None,
+    )
+    parser.addini(
+        "peewee_traceback",
+        "Tracebacks of failed queries: short (without peewee and driver frames) or full. --fulltrace shows them full.",
+        default="short",
     )
     parser.addini(
         "peewee_output",
@@ -63,25 +66,20 @@ def pytest_configure(config: pytest.Config) -> None:
         msg = f"peewee_unavailable must be one of {get_args(UnavailablePolicy.__value__)}, got {value!r}"
         raise pytest.UsageError(msg)
     style = report.report_style(config)
+    frames.traceback_style(config)  # validate
 
     mp = pytest.MonkeyPatch()
-    config.stash[_patches] = mp
+    config.add_cleanup(mp.undo)
     config.stash[REDIRECT] = redirect.install(mp)
     report.install_helpers(mp, config.stash[REDIRECT], style)
 
 
-def pytest_unconfigure(config: pytest.Config) -> None:
-    """Undo `pytest_configure`, if it got to patch."""
-    if _patches in config.stash:
-        config.stash[_patches].undo()
-
-
-@pytest.hookimpl(hookwrapper=True)
-def pytest_runtest_protocol(item: pytest.Item) -> Iterator[None]:
+@pytest.hookimpl(wrapper=True)
+def pytest_runtest_protocol(item: pytest.Item) -> Generator[None, object, object]:
     """Hide the module wide database from tests not requesting it."""
     uses = "module_database" in getattr(item, "fixturenames", ())
     with item.config.stash[REDIRECT].hidden(frozenset() if uses else frozenset({"module_database"})):
-        yield
+        return (yield)
 
 
 def scope(fixture_name: str, config: pytest.Config) -> ScopeName:  # ruff: ignore[ARG001]

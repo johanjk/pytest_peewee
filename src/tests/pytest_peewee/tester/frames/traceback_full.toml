@@ -1,0 +1,3 @@
+# Failed query tracebacks with all frames (test_frames: traceback option).
+[tool.pytest]
+peewee_traceback = "full"

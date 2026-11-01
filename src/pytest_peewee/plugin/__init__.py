@@ -10,7 +10,7 @@ from .connection import (
     database_string,
     setup_database,
 )
-from .hooks import pytest_addoption, pytest_configure, pytest_runtest_protocol, pytest_unconfigure, scope
+from .hooks import pytest_addoption, pytest_configure, pytest_runtest_protocol, scope
 from .schema import (
     database,
     database_isolation,
@@ -38,7 +38,6 @@ __all__ = [
     "pytest_addoption",
     "pytest_configure",
     "pytest_runtest_protocol",
-    "pytest_unconfigure",
     "scope",
     "setup_database",
     "setup_schema",

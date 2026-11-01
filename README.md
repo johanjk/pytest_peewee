@@ -41,7 +41,7 @@ The failure report shows the failed query formatted and linted:
 E       peewee.OperationalError: no such column: t.field
 E       peewee query: SELECT "t1"."id", "t1"."field" FROM "table" AS "t1" INNER JOIN (SELECT "t"."field" FROM "table" AS "t") AS "t2" ON ("t"."field" = "t1"."field")
 
-peewee.py:3920: OperationalError
+test_example.py:15: OperationalError
 ------------------------------ peewee query call -------------------------------
 ╭──────────────────────────────────────────────────────────────────────────────╮
 │   1 WITH t2 AS (SELECT "t"."field" FROM "table" AS "t")                      │
@@ -58,6 +58,7 @@ peewee.py:3920: OperationalError
 │ OperationalError: no such column: t.field                                    │
 ╰──────────────────────────────────────────────────────────────────────────────╯
 Query file: test-results/run-1/test_example.py-test_wrong_join/query.sql
+Traceback hides library frames; show them with -o peewee_traceback=full
 ```
 
 The query is also written to the linked `.sql` file, to copy or open in an editor.
@@ -166,10 +167,14 @@ peewee_scope = "module"      # scope of the connection and schema: session, pack
 peewee_unavailable = "xfail" # database unavailable or misconfigured: xfail, skip or fail
 peewee_report = "framed"     # failed queries, .print() and .lint(): framed, or plain (no panel or line numbers)
 peewee_output = "test-results" # failure artifacts (failed queries as .sql files), relative to the rootdir
+peewee_traceback = "short"   # tracebacks of failed queries: short (without peewee and driver frames) or full
 ```
 
 Use `peewee_report = "plain"` (or `-o peewee_report=plain`) to copy queries from the terminal;
 formatting and colors are kept.
+
+Tracebacks of failed queries end at the line running the query; peewee's and the driver's frames are left out.
+Use `peewee_traceback = "full"` or `--fulltrace` to show them.
 
 An unavailable database is an expected failure by default; run with `--runxfail` (e.g. in CI) to make it an error.
 

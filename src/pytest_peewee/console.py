@@ -84,9 +84,10 @@ def highlight(s: str, dialect: str | None = None, style: ReportStyle = "framed")
 _LIBRARIES = ("peewee", "playhouse", "pytest_peewee", "_pytest", "pytest", "pluggy")
 
 
-def _is_library(frame: FrameType) -> bool:
+def is_library(frame: FrameType) -> bool:
+    """Whether `frame` runs in peewee, this plugin or pytest."""
     module = frame.f_globals.get("__name__", "")
-    return not module or module.split(".")[0] in _LIBRARIES
+    return not module or module.partition(".")[0] in _LIBRARIES
 
 
 type Location = tuple[Path, int]
@@ -101,7 +102,7 @@ def find_caller(frames: Iterable[tuple[FrameType, int]]) -> Location | None:
     """
     called = False
     for frame, lineno in frames:
-        if _is_library(frame):
+        if is_library(frame):
             called = True
         elif called:
             return Path(frame.f_code.co_filename).absolute(), lineno

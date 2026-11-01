@@ -86,7 +86,7 @@ def test_agent_report(copy_testers, monkeypatch: pytest.MonkeyPatch):
     """For AI agents, the report is plain, without colors (also when asked for) and without a query file.
 
     Lint errors show their position, on one line: lines do not wrap.
-    The error is left out, as the traceback above shows it.
+    The error and caller are left out, as the traceback ends at the caller with the error.
     """
     monkeypatch.setenv("AI_AGENT", "third-grade-boatswain")
     pytester = copy_testers({"test_failed.py": "report/failed_lint_query.py"})
@@ -99,6 +99,7 @@ def test_agent_report(copy_testers, monkeypatch: pytest.MonkeyPatch):
     assert not re.search(r" $", report, re.MULTILINE)
     assert not any(c in report for c in "╭│╰")
     assert "Query file:" not in report
+    assert "Called from:" not in report
     assert not re.search(r"^OperationalError:", report, re.MULTILINE)
     assert not (pytester.path / "test-results").exists()
 

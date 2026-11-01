@@ -63,13 +63,17 @@ def test_readme_failure_report(readme: str, readme_pytester: pytest.Pytester):
 
     # Query output matches README
     report = readme.split("peewee query call", 1)[1]
-    expected = [line for line in report.splitlines() if line.startswith(("╭", "│", "╰", "Query file: "))]
+    expected = [
+        line for line in report.splitlines()
+        if line.startswith(("╭", "│", "╰", "Query file: ", "Traceback hides"))
+    ]
     lines = result.stdout.lines
     start = lines.index(expected[0])
     assert lines[start:start + len(expected)] == expected
 
     # Query file content matches README
-    query_file = readme_pytester.path / expected[-1].removeprefix("Query file: ")
+    (query_line,) = [line for line in expected if line.startswith("Query file: ")]
+    query_file = readme_pytester.path / query_line.removeprefix("Query file: ")
     (sql,) = mt.grab_code_blocks(readme, lang="sql")
     assert query_file.read_text(encoding="utf-8") == sql.replace("/path/to/project", str(readme_pytester.path))
 

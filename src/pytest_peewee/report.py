@@ -2,7 +2,7 @@
 
 import io
 import re
-from contextlib import suppress
+from contextlib import nullcontext, suppress
 from typing import TYPE_CHECKING
 
 import peewee as pw
@@ -11,12 +11,12 @@ from rich.console import Console
 from rich.style import Style
 from rich.text import Text
 
-from . import console, fmt
-from .isolation import FAILED_QUERY
+from . import console, fmt, frames
+from .isolation import FAILED_QUERY, failed_query
 from .output import run_dir
 
 if TYPE_CHECKING:
-    from collections.abc import Generator, Iterator
+    from collections.abc import Generator
     from pathlib import Path
 
     from .redirect import Redirect
@@ -58,14 +58,6 @@ def install_helpers(mp: pytest.MonkeyPatch, redirect: Redirect, style: console.R
     for cls in (pw.Query, pw.Context):
         for name, func in binds.items():
             mp.setattr(cls, name, func, raising=False)
-
-
-def _exception_chain(exc: BaseException | None) -> Iterator[BaseException]:
-    seen: set[int] = set()
-    while exc is not None and id(exc) not in seen:
-        seen.add(id(exc))
-        yield exc
-        exc = exc.__cause__ or exc.__context__
 
 
 def _comment(text: str) -> str:
@@ -119,57 +111,70 @@ def _error_text(exc: BaseException) -> Text:
     return Text.assemble(Text(type(exc).__name__, Style(color="red", bold=True)), f": {exc}")
 
 
-def render_failed_query(item: pytest.Item, error: BaseException, when: str = "call") -> str | None:
+def render_failed_query(
+    item: pytest.Item, error: BaseException, when: str = "call", *, hidden: bool = False,
+) -> str | None:
     """Render the failed query attached to `error` (or its causes), if any.
 
     The query is also written to a .sql file, linked under the rendered query; not for AI agents,
-    as the report holds the same query and errors.
-    For AI agents, the error (in the traceback above) is left out.
+    as the report holds the same query and errors. With `hidden`, a note tells how to show the hidden frames.
+    For AI agents, the error (in the traceback above) is left out, and so is the caller with `hidden`,
+    as the traceback ends there.
     """
-    for exc in _exception_chain(error):
-        info = getattr(exc, FAILED_QUERY, None)
-        if info is None:
-            continue
-        query, database = info
-        subtext = f"{type(exc).__name__}: {exc}"
-        tw = item.config.get_terminal_writer()
-        style = report_style(item.config)
-        buffer = io.StringIO()
-        out = Console(
-            file=buffer,
-            force_terminal=tw.hasmarkup,
-            color_system="truecolor" if tw.hasmarkup else None,
-            width=console.width(style) or tw.fullwidth,
+    exc = failed_query(error)
+    if exc is None:
+        return None
+    query, database = getattr(exc, FAILED_QUERY)
+    subtext = f"{type(exc).__name__}: {exc}"
+    tw = item.config.get_terminal_writer()
+    style = report_style(item.config)
+    buffer = io.StringIO()
+    out = Console(
+        file=buffer,
+        force_terminal=tw.hasmarkup,
+        color_system="truecolor" if tw.hasmarkup else None,
+        width=console.width(style) or tw.fullwidth,
+    )
+    caller = console.raised_at(exc)
+    agent = console.agent()
+    rendered = False
+    with suppress(Exception):  # never break the report; the raw query is in the exception note
+        caller_view = console.location_text(caller) if caller and not (agent and hidden) else None
+        view = console.query_view(
+            query, database, None if agent else _error_text(exc), caller_view,
+            lint=True, positions=not tw.hasmarkup, style=style,
         )
-        caller = console.raised_at(exc)
-        agent = console.agent()
-        rendered = False
-        with suppress(Exception):  # never break the report; the raw query is in the exception note
-            caller_view = console.location_text(caller) if caller else None
-            view = console.query_view(
-                query, database, None if agent else _error_text(exc), caller_view,
-                lint=True, positions=not tw.hasmarkup, style=style,
-            )
-            out.print(view)
-            rendered = True
-        if not rendered:
-            return None
-        if not agent:  # agents read the query and errors from the report
-            with suppress(Exception):  # the file is best effort
-                path = write_query_file(item, when, query, database, subtext, caller=caller)
-                out.print(_query_link(item.config, path, linked=tw.hasmarkup), soft_wrap=True)
-        return buffer.getvalue()
-    return None
+        out.print(view)
+        rendered = True
+    if not rendered:
+        return None
+    if not agent:  # agents read the query and errors from the report
+        with suppress(Exception):  # the file is best effort
+            path = write_query_file(item, when, query, database, subtext, caller=caller)
+            out.print(_query_link(item.config, path, linked=tw.hasmarkup), soft_wrap=True)
+    if hidden:
+        note = Text(frames.HIDDEN_FRAMES)
+        note.highlight_words([frames.FULL_TRACEBACK], Style(color="cyan"))
+        out.print(note, soft_wrap=True)
+    return buffer.getvalue()
 
 
-@pytest.hookimpl(hookwrapper=True)
+@pytest.hookimpl(wrapper=True)
 def pytest_runtest_makereport(
     item: pytest.Item, call: pytest.CallInfo[None],
-) -> Generator[None, pytest.TestReport]:
-    """Add the formatted and linted failed query to failing test reports."""
-    outcome = yield
-    report: pytest.TestReport = outcome.get_result()  # type: ignore[attr-defined]
+) -> Generator[None, pytest.TestReport, pytest.TestReport]:
+    """Add the formatted and linted failed query to failing test reports.
+
+    With 'peewee_traceback = short', the frames running the failed query are left out of its traceback,
+    noted under the query.
+    """
+    excinfo = call.excinfo
+    hide = excinfo is not None and failed_query(excinfo.value) is not None
+    hide = hide and frames.traceback_style(item.config) == "short"
+    with frames.hide_query_frames(excinfo) if hide and excinfo else nullcontext():
+        report = yield
     if report.failed and call.excinfo is not None:
-        rendered = render_failed_query(item, call.excinfo.value, call.when)
+        rendered = render_failed_query(item, call.excinfo.value, call.when, hidden=hide)
         if rendered:
             report.sections.append((f"peewee query {call.when}", rendered))
+    return report

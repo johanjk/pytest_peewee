@@ -1,0 +1,3 @@
+# Unknown traceback style, a usage error (test_frames: traceback option).
+[tool.pytest]
+peewee_traceback = "longest"

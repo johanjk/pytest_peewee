@@ -19,7 +19,6 @@ from .plugin import (
     pytest_addoption,
     pytest_configure,
     pytest_runtest_protocol,
-    pytest_unconfigure,
     scope,
     setup_database,
     setup_schema,

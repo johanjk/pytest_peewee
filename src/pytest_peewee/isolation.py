@@ -24,7 +24,7 @@ from peewee import query_to_string  # type: ignore
 from . import fmt
 
 if TYPE_CHECKING:
-    from collections.abc import Generator
+    from collections.abc import Generator, Iterator
 
 type IsolationPolicy = Literal["strict", "warn", "off"]
 POLICIES: tuple[IsolationPolicy, ...] = ("strict", "warn", "off")
@@ -38,6 +38,21 @@ _LIBRARY_FILES = (
 
 FAILED_QUERY = "_pytest_peewee_query"
 """Exception attribute holding `(query, database)` of the failed query."""
+
+
+def exception_chain(exc: BaseException | None) -> Iterator[BaseException]:
+    """`exc` and its causes (or contexts), outermost first."""
+    seen: set[int] = set()
+    while exc is not None and id(exc) not in seen:
+        seen.add(id(exc))
+        yield exc
+        exc = exc.__cause__ or exc.__context__
+
+
+def failed_query(error: BaseException) -> BaseException | None:
+    """`error`, or the first of its causes, with a failed query attached."""
+    return next((exc for exc in exception_chain(error) if hasattr(exc, FAILED_QUERY)), None)
+
 
 # MySQL/MariaDB statements causing an implicit commit, ending the test transaction.
 # https://dev.mysql.com/doc/refman/8.4/en/implicit-commit.html
