@@ -95,6 +95,7 @@ class RollbackDatabase(pw.Database):
 
     @override
     def connect(self, reuse_if_open: bool = False) -> bool:
+        """Reopen the shared connection; only marks it open again."""
         if not self._ppw_closed:
             if reuse_if_open:
                 return False
@@ -106,18 +107,21 @@ class RollbackDatabase(pw.Database):
 
     @override
     def close(self) -> bool:
+        """Mark the connection closed; the shared connection itself stays open."""
         was_open = not self._ppw_closed
         self._ppw_closed = True
         return was_open
 
     @override
     def is_closed(self) -> bool:
+        """Whether the test closed the connection."""
         return self._ppw_closed
 
     # Isolation guards.
 
     @override
     def commit(self) -> None:
+        """Commit, unless it would commit the isolation transaction; see `peewee_isolation`."""
         if self._ppw_isolated and self.in_transaction():
             reason = "COMMIT inside a test would commit the isolation transaction."
             if self._ppw_breach(reason, "COMMIT", skip_on_warn=True):
@@ -146,6 +150,7 @@ class RollbackDatabase(pw.Database):
 
     @override
     def execute(self, query: Any, **context_options: Any) -> Any:
+        """Execute `query`; a failure carries it for the failure report."""
         __tracebackhide__ = True
         try:
             return super().execute(query, **context_options)
@@ -162,6 +167,7 @@ class MySQLRollbackDatabase(RollbackDatabase, pw.MySQLDatabase):
 
     @override
     def execute_sql(self, sql: str, params: Any = None, *args: Any, **kwargs: Any) -> Any:
+        """Execute `sql`, unless MySQL would implicitly commit the isolation transaction."""
         __tracebackhide__ = True
         if self._ppw_isolated and self.in_transaction() and implicit_commit(sql):
             self._ppw_breach(

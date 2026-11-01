@@ -4,7 +4,9 @@ from urllib.parse import quote, urlencode
 import pydantic
 
 
-class BaseModel(pydantic.BaseModel):  # ruff: ignore[D101]
+class BaseModel(pydantic.BaseModel):
+    """Immutable, rejecting unknown fields."""
+
     model_config: ClassVar[pydantic.ConfigDict] = pydantic.ConfigDict(frozen=True, extra="forbid")
 
 
