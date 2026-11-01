@@ -1,6 +1,7 @@
 """Plugin hooks: ini options, and the global patches of a pytest session."""
 
-from typing import TYPE_CHECKING, Literal, cast, get_args
+from collections.abc import Generator
+from typing import Literal, cast, get_args
 
 import pytest
 
@@ -9,9 +10,6 @@ from .._frames import traceback_style
 from .._redirect import Redirect
 from .._redirect import install as install_redirect
 from .._report import install_helpers, report_style
-
-if TYPE_CHECKING:
-    from collections.abc import Generator
 
 type ScopeName = Literal["session", "package", "module"]
 type UnavailablePolicy = Literal["xfail", "skip", "fail"]

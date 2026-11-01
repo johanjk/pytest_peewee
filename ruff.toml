@@ -7,6 +7,10 @@ line-length = 120
 [format]
 docstring-code-format = true
 
+[lint.flake8-type-checking]
+# Annotations of fixtures and hooks are read at runtime, e.g. by `inspect.signature`
+runtime-evaluated-decorators = ["pytest.fixture", "pytest.hookimpl"]
+
 [lint.pydocstyle]
 convention = "google"
 

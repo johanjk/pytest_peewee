@@ -1,11 +1,8 @@
+from collections.abc import Iterator
 from pathlib import Path
-from typing import TYPE_CHECKING
 
 import mktestdocs as mt  # type: ignore[import-untyped]
 import pytest
-
-if TYPE_CHECKING:
-    from collections.abc import Iterator
 
 TOPLEVEL = Path(__file__).parents[2]
 """Same as the `toplevel_path` fixture; params are needed at collection."""

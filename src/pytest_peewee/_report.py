@@ -2,6 +2,7 @@
 
 import io
 import re
+from collections.abc import Generator
 from contextlib import nullcontext, suppress
 from typing import TYPE_CHECKING, cast
 
@@ -18,7 +19,6 @@ from ._isolation import FAILED_QUERY, failed_query
 from ._output import run_dir
 
 if TYPE_CHECKING:
-    from collections.abc import Generator
     from pathlib import Path
 
     from ._redirect import Redirect

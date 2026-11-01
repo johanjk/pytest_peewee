@@ -1,5 +1,6 @@
 """Connection fixtures: kwargs, from env vars or defaults, to a database string, to a usable database."""
 
+from collections.abc import Iterator
 from contextlib import ExitStack
 from typing import TYPE_CHECKING
 
@@ -13,7 +14,7 @@ from .._parse_env import parse_env
 from .hooks import scope
 
 if TYPE_CHECKING:
-    from collections.abc import Callable, Iterator, Mapping
+    from collections.abc import Callable, Mapping
 
 type sdict = dict[str, str]  # ruff: ignore[PYI042]
 type DatabaseFactory = Callable[[str], pw.Database]

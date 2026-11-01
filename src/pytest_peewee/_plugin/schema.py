@@ -1,19 +1,18 @@
 """Schema fixtures, and the isolated test databases on top of them."""
 
+from collections.abc import Iterator
 from contextlib import ExitStack, contextmanager
 from typing import TYPE_CHECKING, cast
 
+import peewee as pw
 import pytest
 
 from .._isolation import POLICIES, IsolationPolicy, RollbackDatabase, isolate, under_test
+from .._redirect import DatabaseMap
 from .hooks import REDIRECT, scope
 
 if TYPE_CHECKING:
-    from collections.abc import Generator, Iterable, Iterator
-
-    import peewee as pw
-
-    from .._redirect import DatabaseMap
+    from collections.abc import Generator, Iterable
 
 
 @pytest.fixture(scope=scope)

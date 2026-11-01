@@ -1,15 +1,12 @@
 """`database`, skipping the test unless it is of a given backend."""
 
-from typing import TYPE_CHECKING
+from collections.abc import Iterator
 
 import peewee as pw
 import playhouse.cockroachdb as pwc  # type: ignore[reportMissingTypeStubs]
 import pytest
 
-if TYPE_CHECKING:
-    from collections.abc import Iterator
-
-    from .._isolation import RollbackDatabase
+from .._isolation import RollbackDatabase
 
 
 @pytest.fixture(scope="function")
