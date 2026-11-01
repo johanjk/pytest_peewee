@@ -29,13 +29,10 @@ ignore = [
   "S101", # use of assert
   "PT003", # explicit 'function' scope fixtures
   "TID252", # Relative imports
-]
-[lint.per-file-ignores]
-# Workaround for cli '--select D' in 'poe docstyle'
-"**" = [
   "D100", # module level docstring
   "D104", # package level docstring
 ]
+[lint.per-file-ignores]
 ".github/**" = [
   "S404", # CI scripts call tools via subprocess
   "S607", # tools found on PATH

@@ -48,9 +48,7 @@ help = "Check dependency usage with deptry"
 # LINTING TASKS
 # ------------------------------------------------------------------------------
 [tasks.lint]
-cmd = "ruff check --ignore D"
-[tasks.docstyle]
-cmd = "ruff check --select D"
+cmd = "ruff check"
 [tasks.fmt]
 sequence = [
   { cmd = "ruff check --select I --select F401 --fix" },
@@ -83,7 +81,7 @@ cmd = "pyright --verifytypes pytest_peewee --ignoreexternal"
 help = "Verify exported type completions with Pyright"
 
 [tasks."lint:ci"]
-sequence = ["req", "lint", "docstyle", "types:check", "types:check-ty", "types:verify"]
+sequence = ["req", "lint", "types:check", "types:check-ty", "types:verify"]
 help = "Run all lint related actions in CI"
 
 # ------------------------------------------------------------------------------
