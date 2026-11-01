@@ -25,13 +25,14 @@ def sqlite(database: RollbackDatabase) -> Iterator[RollbackDatabase]:
 @pytest.fixture(scope="function")
 def postgres(database: RollbackDatabase) -> Iterator[RollbackDatabase]:
     """Postgres database; not Cockroach, though peewee's `CockroachDatabase` subclasses `PostgresqlDatabase`."""
-    match database:
-        case pwc.CockroachDatabase():
-            pytest.skip("Not a postgres database, but Cockroach.")
-        case pw.PostgresqlDatabase():
-            yield database
-        case _:
-            pytest.skip("Not a postgres database.")
+    if isinstance(database, pwc.CockroachDatabase):
+        pytest.skip("Not a postgres database, but Cockroach.")
+        return
+    if not isinstance(database, pw.PostgresqlDatabase):
+        pytest.skip("Not a postgres database.")
+        return
+
+    yield database
 
 
 @pytest.fixture(scope="function")

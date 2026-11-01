@@ -7,6 +7,9 @@ transaction against commits. MySQL databases get `MySQLRollbackDatabase`, which
 also guards against statements implicitly committing.
 """
 
+# pyright: reportPrivateUsage=false
+# This module owns the `_ppw_*` state of `RollbackDatabase`, and manages it from `under_test` and `isolate`.
+
 import inspect
 import os
 import re
@@ -17,9 +20,9 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any, Literal, cast, override
 
 import peewee as pw
-import playhouse  # type: ignore[reportMissingTypeStubs]
+import playhouse
 import pytest
-from peewee import query_to_string
+from peewee import query_to_string  # type: ignore  # ruff: ignore[PGH003]
 
 from . import _fmt as fmt
 
@@ -183,7 +186,7 @@ class MySQLRollbackDatabase(RollbackDatabase, pw.MySQLDatabase):
 @cache  # one subclass per database class; stateless, the state is on the instance
 def _test_class(base: type[pw.Database]) -> type[RollbackDatabase]:
     mixin = MySQLRollbackDatabase if issubclass(base, pw.MySQLDatabase) else RollbackDatabase
-    return type(f"Test{base.__name__}", (mixin, base), {})
+    return cast(type[RollbackDatabase], type(f"Test{base.__name__}", (mixin, base), {}))
 
 
 @contextmanager

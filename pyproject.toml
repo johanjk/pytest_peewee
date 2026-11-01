@@ -169,7 +169,6 @@ deprecateTypingAliases = true
 reportImplicitOverride = true
 reportMissingSuperCall = true
 reportPropertyTypeMismatch = true
-reportImplicitStringConcatenation = true
 reportUnnecessaryTypeIgnoreComment = true
 # peewee has incomplete type info
 reportUnknownParameterType = false
