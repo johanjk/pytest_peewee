@@ -102,14 +102,14 @@ def test_print(capsys: pytest.CaptureFixture[str], database: RollbackDatabase, m
     lineno = next(i for i, line in enumerate(source, 1) if line.strip() == "qs.maybe_bad_query(False).print()")
 
     sql = [
-        'WITH t2 AS (SELECT "sq"."x" FROM "othertable" AS "sq")',
-        "",
         "SELECT",
         '    "t1"."id",',
         '    "t1"."x",',
         '    "t1"."y"',
         'FROM "othertable" AS "t1"',
-        'INNER JOIN t2 ON ("t1"."x" = "t2"."x")',
+        "INNER JOIN",
+        '    (SELECT "sq"."x" FROM "othertable" AS "sq") AS "t2"',
+        '    ON ("t1"."x" = "t2"."x")',
     ]
     if isinstance(database, pw.MySQLDatabase):
         sql = [line.replace('"', "`") for line in sql]

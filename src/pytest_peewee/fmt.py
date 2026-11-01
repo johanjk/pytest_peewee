@@ -46,8 +46,12 @@ def _fix(sql: str, dialect: str | None) -> str:
     return sqlfluff.fix(
         sql,
         dialect=dialect,
-        rules=["capitalisation", "layout", "structure", "LT05", "LT09"],
-        exclude_rules=["CP01", "LT12", "RF06"],
+        rules=["capitalisation", "layout", "LT05", "LT09"],
+        exclude_rules=[
+            "CP01",
+            "LT12",
+            "RF06",
+        ],
         fix_even_unparsable=True,
     )
 
@@ -83,6 +87,10 @@ def _lint(sql: str, dialect: str | None) -> list[LintInfo]:
         dialect=dialect,
         rules=["all"],
         exclude_rules=[
+            "ST05",  # Subquery to cte
+            "ST06",  # Column order
+            "ST07",  # USING
+            "ST08",  # Distinct brackets
             "LT05",  # Line too long
             "LT09",  # Select targets should be on a new line
             "CP01",  # Capitalization

@@ -166,7 +166,7 @@ def _span(warn: fmt.LintInfo) -> str:
 def lint_messages(warns: list[fmt.LintInfo], *, positions: bool = False) -> list[tuple[str, str]]:
     """Unique `(code, description)` of linting errors.
 
-    With `positions`, the code is prefixed by the span of each occurrence, e.g. `L7:19-21 RF01`;
+    With `positions`, the code is prefixed by the span of each occurrence, e.g. `L7:9-11 RF01`;
     for reports without colors, where the error location is not highlighted.
     """
     found: dict[tuple[str, str], list[str]] = {}
@@ -189,7 +189,7 @@ def query_view(  # ruff: ignore[PLR0913]
 ) -> RenderableType:
     """Formatted and highlighted query, with `caller`, linting errors (when `lint`) and `subtext` under it.
 
-    With `positions`, the linting errors start with their span in the query, e.g. `L7:19-21`.
+    With `positions`, the linting errors start with their span in the query, e.g. `L7:9-11`.
     """
     sql, warns = fmt.lint_query(query, database) if lint else (fmt.render(query, database), [])
     syntax = highlight(sql, dialect(database), style)

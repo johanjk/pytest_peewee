@@ -44,15 +44,15 @@ E       peewee query: SELECT "t1"."id", "t1"."field" FROM "table" AS "t1" INNER 
 test_example.py:15: OperationalError
 ------------------------------ peewee query call -------------------------------
 ╭──────────────────────────────────────────────────────────────────────────────╮
-│   1 WITH t2 AS (SELECT "t"."field" FROM "table" AS "t")                      │
-│   2                                                                          │
-│   3 SELECT                                                                   │
-│   4     "t1"."id",                                                           │
-│   5     "t1"."field"                                                         │
-│   6 FROM "table" AS "t1"                                                     │
-│   7 INNER JOIN t2 ON ("t"."field" = "t1"."field")                            │
+│   1 SELECT                                                                   │
+│   2     "t1"."id",                                                           │
+│   3     "t1"."field"                                                         │
+│   4 FROM "table" AS "t1"                                                     │
+│   5 INNER JOIN                                                               │
+│   6     (SELECT "t"."field" FROM "table" AS "t") AS "t2"                     │
+│   7     ON ("t"."field" = "t1"."field")                                      │
 │ Called from: test_example.py:15                                              │
-│ L7:19-21 RF01: Reference '"t"."field"' refers to table/view not found in the │
+│ L7:9-11 RF01: Reference '"t"."field"' refers to table/view not found in the  │
 │ FROM clause or found in ancestor statement.                                  │
 │                                                                              │
 │ OperationalError: no such column: t.field                                    │
@@ -65,21 +65,21 @@ The query is also written to the linked `.sql` file, to copy or open in an edito
 Failure artifacts go to `test-results/run-<N>/<test id>/` in the rootdir (set with the `peewee_output` ini option).
 Each run gets its own numbered folder; the last 3 runs are kept. The folder ignores itself in git.
 With colors, the report shows `query.sql` as a link to the file; without (`--color=no`), the path to it.
-Without colors, lint errors start with their line and columns in the query (`L7:19-21`), as the error is not highlighted.
+Without colors, lint errors start with their line and columns in the query (`L7:9-11`), as the error is not highlighted.
 
 The file holds the query, with the caller, lint errors (by line and columns) and query error as comments:
 
 ```sql
-WITH t2 AS (SELECT "t"."field" FROM "table" AS "t")
-
 SELECT
     "t1"."id",
     "t1"."field"
 FROM "table" AS "t1"
-INNER JOIN t2 ON ("t"."field" = "t1"."field")
+INNER JOIN
+    (SELECT "t"."field" FROM "table" AS "t") AS "t2"
+    ON ("t"."field" = "t1"."field")
 
 -- Called from: /path/to/project/test_example.py:15
--- L7:19-21 RF01: Reference '"t"."field"' refers to table/view not found in the FROM clause or found in ancestor statement.
+-- L7:9-11 RF01: Reference '"t"."field"' refers to table/view not found in the FROM clause or found in ancestor statement.
 -- OperationalError: no such column: t.field
 ```
 

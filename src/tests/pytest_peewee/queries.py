@@ -24,7 +24,7 @@ def maybe_bad_query(fail: bool) -> DebugQuery:
     return (
         OtherTable
         .select()
-        .join(subq, on=(on_clause == OtherTable.x))
+        .join(subq, on=(OtherTable.x == on_clause))
     )
 
 
