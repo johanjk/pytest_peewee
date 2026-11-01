@@ -23,6 +23,7 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       matrix: ${{ steps.set-matrix.outputs.matrix }}
+      newest: ${{ steps.set-matrix.outputs.newest }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -32,42 +33,9 @@ jobs:
         id: set-matrix
         uses: ./.github/actions/py-version
 
-  cache_docker:
-    runs-on: ubuntu-latest
-
-    outputs:
-      cache_key: ${{ steps.cache-key.versions.outputs.cache_key }}
-
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: false
-
-      - name: Get Date
-        id: get-date
-        run: |
-          echo "date=$(/bin/date -u "+%Y%m%d")" >> $GITHUB_OUTPUT
-        shell: bash
-
-      - name: Get cache key
-        id: cache-key
-        # yamllint disable rule:line-length
-        run: |
-          echo "cache_key=docker-${{ runner.os }}-${{ steps.get-date.outputs.date }}-${{ hashFiles('./dev.sh') }}" >> $GITHUB_OUTPUT
-        # yamllint enable rule:line-length
-
-      - name: Cache Docker images
-        uses: ScribeMD/docker-cache@fb28c93772363301b8d0a6072ce850224b73f74e # 0.5.0
-        with:
-          key: ${{ steps.cache-key.outputs.cache_key }}
-
-      - name: Fetch docker images
-        run: ./dev.sh pull
-
   testing:
     needs:
       - generate-matrix
-      - cache_docker
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -89,11 +57,6 @@ jobs:
 
       - name: Run dependency check
         run: uv run poe req
-
-      - name: Cache Docker images
-        uses: ScribeMD/docker-cache@fb28c93772363301b8d0a6072ce850224b73f74e # 0.5.0
-        with:
-          key: "{{ needs.cache_docker.outputs.cache_key }}"
 
       - name: Run tests
         run: |
