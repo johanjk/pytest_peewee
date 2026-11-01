@@ -33,8 +33,9 @@ def pytest_addoption(parser: pytest.Parser) -> None:
     )
     parser.addini(
         "peewee_report",
-        "Failed queries, .print() and .lint(): framed (panel, line numbers) or plain (copyable).",
-        default="framed",
+        "Failed queries, .print() and .lint(): framed (panel, line numbers) or plain (copyable). "
+        "Unset: plain when the AI_AGENT env var is set, framed otherwise.",
+        default=None,
     )
     parser.addini(
         "peewee_output",
@@ -48,19 +49,20 @@ def pytest_addoption(parser: pytest.Parser) -> None:
     )
 
 
+@pytest.hookimpl(tryfirst=True)
 def pytest_configure(config: pytest.Config) -> None:
     """Validate options, then install the database redirect and query debug helpers.
 
     They are patched with monkeypatch, so a nested session (pytester) restores the outer one's.
+    For AI agents, colors are turned off, before pytest's terminal reporter reads the option.
     """
+    if console.agent():
+        config.option.color = "no"
     value = config.getini("peewee_unavailable")
     if value not in get_args(UnavailablePolicy.__value__):
         msg = f"peewee_unavailable must be one of {get_args(UnavailablePolicy.__value__)}, got {value!r}"
         raise pytest.UsageError(msg)
-    style = config.getini("peewee_report")
-    if style not in console.REPORT_STYLES:
-        msg = f"peewee_report must be one of {console.REPORT_STYLES}, got {style!r}"
-        raise pytest.UsageError(msg)
+    style = report.report_style(config)
 
     mp = pytest.MonkeyPatch()
     config.stash[_patches] = mp

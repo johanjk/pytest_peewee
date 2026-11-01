@@ -1,3 +1,4 @@
+import os
 import traceback
 import warnings
 from contextlib import suppress
@@ -29,9 +30,23 @@ def _frame(*renderables: RenderableType | None, style: ReportStyle) -> Renderabl
     return Panel(group) if style == "framed" else group
 
 
-def console() -> Console:
-    """Pytest compatible console printer."""
-    return Console(color_system="truecolor")
+def agent() -> bool:
+    """Whether an AI agent runs the tests, by the `AI_AGENT` env var."""
+    return bool(os.environ.get("AI_AGENT"))
+
+
+_UNWRAPPED = 100_000
+"""Console width that never wraps; plain output is not padded to it."""
+
+
+def width(style: ReportStyle) -> int | None:
+    """Console width for `style`: unwrapped for AI agents with plain reports, else that of the terminal (None)."""
+    return _UNWRAPPED if agent() and style == "plain" else None
+
+
+def console(style: ReportStyle = "framed") -> Console:
+    """Pytest compatible console printer; without colors for AI agents, and unwrapped when plain."""
+    return Console(color_system=None if agent() else "truecolor", width=width(style))
 
 
 def colored(out: Console) -> bool:
@@ -194,7 +209,7 @@ def print_query(
     query: pw.Query, database: pw.Database, subtext: str | None = None, *, style: ReportStyle = "framed",
 ) -> None:
     """Pretty print a query."""
-    out = console()
+    out = console(style)
     out.print(query_view(query, database, subtext, caller_info(), positions=not colored(out), style=style))
 
 
@@ -209,6 +224,6 @@ def print_lint(
     _, warns = fmt.lint_query(query, database)
     if not warns:
         return True
-    out = console()
+    out = console(style)
     out.print(query_view(query, database, subtext, caller_info(), lint=True, positions=not colored(out), style=style))
     return False

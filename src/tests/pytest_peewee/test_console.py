@@ -82,11 +82,21 @@ def test_lint_message_positions(database: RollbackDatabase, malformed: Malformed
         assert re.fullmatch(rf"(L\d+:\d+(-(L\d+:)?\d+)? )+{code}", label)
 
 
+def test_agent_console(monkeypatch: pytest.MonkeyPatch):
+    """`.print()` and `.lint()` print without colors for AI agents."""
+    from pytest_peewee import console as c  # ruff: ignore[PLC0415]
+
+    monkeypatch.setenv("AI_AGENT", "third-grade-boatswain")
+    assert not c.colored(c.console())
+    monkeypatch.delenv("AI_AGENT")
+    assert c.colored(c.console())
+
+
 def test_print(capsys: pytest.CaptureFixture[str], database: RollbackDatabase, monkeypatch: pytest.MonkeyPatch):
     """The query is printed formatted, numbered and framed, with the caller under it."""
     from pytest_peewee import console as c  # ruff: ignore[PLC0415]
 
-    monkeypatch.setattr(c, "console", lambda: Console(color_system=None, width=80))
+    monkeypatch.setattr(c, "console", lambda _style="framed": Console(color_system=None, width=80))
     qs.maybe_bad_query(False).print()
     source = Path(__file__).read_text(encoding="utf-8").splitlines()
     lineno = next(i for i, line in enumerate(source, 1) if line.strip() == "qs.maybe_bad_query(False).print()")

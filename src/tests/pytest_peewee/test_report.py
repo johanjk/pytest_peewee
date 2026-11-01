@@ -5,7 +5,6 @@ import peewee as pw
 import pytest
 from rich.text import Text
 
-
 if TYPE_CHECKING:
     from pathlib import Path
 
@@ -80,7 +79,37 @@ def test_query_file_lint_positions(copy_testers):
     match = re.search(r"^-- L(\d+):(\d+)-(\d+) RF01: ", "\n".join(lines), re.MULTILINE)
     assert match, result.stdout.str()
     line, start, end = map(int, match.groups())
-    assert lines[line - 1][start - 1:end].replace("`", '"') == '"t"'  # the table of the reference, not in the FROM clause
+    assert lines[line - 1][start - 1:end].replace("`", '"') == '"t"'  # the unknown table of the reference
+
+
+def test_agent_report(copy_testers, monkeypatch: pytest.MonkeyPatch):
+    """For AI agents, the report is plain, without colors (also when asked for) and without a query file.
+
+    Lint errors show their position, on one line: lines do not wrap.
+    The error is left out, as the traceback above shows it.
+    """
+    monkeypatch.setenv("AI_AGENT", "third-grade-boatswain")
+    pytester = copy_testers({"test_failed.py": "report/failed_lint_query.py"})
+    result = pytester.runpytest("--color=yes")
+    result.assert_outcomes(failed=1)
+
+    assert "\x1b" not in result.stdout.str()
+    report = result.stdout.str().split("peewee query call", 1)[1]
+    assert re.search(r"^L\d+:\d+-\d+ RF01: .* FROM clause or found in ancestor statement\.$", report, re.MULTILINE)
+    assert not re.search(r" $", report, re.MULTILINE)
+    assert not any(c in report for c in "╭│╰")
+    assert "Query file:" not in report
+    assert not re.search(r"^OperationalError:", report, re.MULTILINE)
+    assert not (pytester.path / "test-results").exists()
+
+
+def test_agent_report_option(copy_testers, monkeypatch: pytest.MonkeyPatch):
+    """A set 'peewee_report' wins over the AI agent default."""
+    monkeypatch.setenv("AI_AGENT", "third-grade-boatswain")
+    pytester = copy_testers({"test_failed.py": "report/failed_query.py"})
+    result = pytester.runpytest("--color=no", "-o", "peewee_report=framed")
+    report = result.stdout.str().split("peewee query call", 1)[1]
+    assert "╭" in report
 
 
 def test_invalid_report(copy_testers):

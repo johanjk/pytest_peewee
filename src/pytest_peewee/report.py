@@ -22,6 +22,17 @@ if TYPE_CHECKING:
     from .redirect import Redirect
 
 
+def report_style(config: pytest.Config) -> console.ReportStyle:
+    """The 'peewee_report' ini option; when unset, plain for AI agents and framed otherwise."""
+    style = config.getini("peewee_report")
+    if style is None:
+        return "plain" if console.agent() else "framed"
+    if style not in console.REPORT_STYLES:
+        msg = f"peewee_report must be one of {console.REPORT_STYLES}, got {style!r}"
+        raise pytest.UsageError(msg)
+    return style
+
+
 def install_helpers(mp: pytest.MonkeyPatch, redirect: Redirect, style: console.ReportStyle) -> None:
     """Add `.print()` and `.lint()` to peewee queries, printing in `style`, undone by `mp`.
 
@@ -104,10 +115,16 @@ def _query_link(config: pytest.Config, path: Path, *, linked: bool) -> Text:
     return Text(f"Query file: {shown}")
 
 
+def _error_text(exc: BaseException) -> Text:
+    return Text.assemble(Text(type(exc).__name__, Style(color="red", bold=True)), f": {exc}")
+
+
 def render_failed_query(item: pytest.Item, error: BaseException, when: str = "call") -> str | None:
     """Render the failed query attached to `error` (or its causes), if any.
 
-    The query is also written to a .sql file, linked under the rendered query.
+    The query is also written to a .sql file, linked under the rendered query; not for AI agents,
+    as the report holds the same query and errors.
+    For AI agents, the error (in the traceback above) is left out.
     """
     for exc in _exception_chain(error):
         info = getattr(exc, FAILED_QUERY, None)
@@ -115,33 +132,32 @@ def render_failed_query(item: pytest.Item, error: BaseException, when: str = "ca
             continue
         query, database = info
         subtext = f"{type(exc).__name__}: {exc}"
-        error_text = Text.assemble(Text(
-            type(exc).__name__,
-            Style(color="red", bold=True)), f": {exc}"
-        )
         tw = item.config.get_terminal_writer()
+        style = report_style(item.config)
         buffer = io.StringIO()
         out = Console(
             file=buffer,
             force_terminal=tw.hasmarkup,
             color_system="truecolor" if tw.hasmarkup else None,
-            width=tw.fullwidth,
+            width=console.width(style) or tw.fullwidth,
         )
         caller = console.raised_at(exc)
+        agent = console.agent()
         rendered = False
         with suppress(Exception):  # never break the report; the raw query is in the exception note
             caller_view = console.location_text(caller) if caller else None
             view = console.query_view(
-                query, database, error_text, caller_view,
-                lint=True, positions=not tw.hasmarkup, style=item.config.getini("peewee_report"),
+                query, database, None if agent else _error_text(exc), caller_view,
+                lint=True, positions=not tw.hasmarkup, style=style,
             )
             out.print(view)
             rendered = True
         if not rendered:
             return None
-        with suppress(Exception):  # the file is best effort
-            path = write_query_file(item, when, query, database, subtext, caller=caller)
-            out.print(_query_link(item.config, path, linked=tw.hasmarkup), soft_wrap=True)
+        if not agent:  # agents read the query and errors from the report
+            with suppress(Exception):  # the file is best effort
+                path = write_query_file(item, when, query, database, subtext, caller=caller)
+                out.print(_query_link(item.config, path, linked=tw.hasmarkup), soft_wrap=True)
         return buffer.getvalue()
     return None
 
