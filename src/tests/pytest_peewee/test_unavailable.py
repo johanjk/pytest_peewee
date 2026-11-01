@@ -29,7 +29,10 @@ def test_policy(unavailable: pytest.Pytester, copy_testers, config, args, outcom
 
 def test_invalid_policy(copy_testers):
     """Bad 'peewee_unavailable' values are a usage error."""
-    pytester = copy_testers({"pyproject.toml": "unavailable/unavailable_invalid.toml", "test_db.py": "uses_database.py"})
+    pytester = copy_testers({
+        "pyproject.toml": "unavailable/unavailable_invalid.toml",
+        "test_db.py": "uses_database.py",
+    })
     result = pytester.runpytest()
     assert result.ret == pytest.ExitCode.USAGE_ERROR
     assert "peewee_unavailable must be one of" in result.stderr.str()

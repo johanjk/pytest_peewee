@@ -1,26 +1,45 @@
 preview = true
 output-format = "grouped"
+output-prefer-rule-codes = true
 
-target-version = "py313"
+line-length = 120
+
+[format]
+docstring-code-format = true
 
 [lint.pydocstyle]
 convention = "google"
 
 [lint]
-select = ["D"]
+select = ["ALL"]
 ignore = [
-  "D100", # module level docstring
-  "D104", # package level docstring
-  "TID252", # relative import
+  "RUF201", # Allow output-rule-codes
+  "RUF106", # Allow output-rule-codes
+  "CPY", # Copyright
+  "ANN", # Annotations is typechecker concern
+  "DOC201", # Docstring return convention
+  "DOC402", # Docstring yield convention
+  "DOC501", # Docstring raise convention
   "E731", # inline lambda
   "PT022", # yielding fixtures
   "FBT001", # boolean flags in args
   "FBT002", # boolean flags in args
   "A003", # shadow builtin (id table columns)
+  "TC006", # Typecast as string
   "S101", # use of assert
   "PT003", # explicit 'function' scope fixtures
 ]
 [lint.per-file-ignores]
+# Workaround for cli '--select D' in 'poe docstyle'
+"**" = [
+  "D100", # module level docstring
+  "D104", # package level docstring
+]
+".github/**" = [
+  "S404", # CI scripts call tools via subprocess
+  "S607", # tools found on PATH
+  "T201", # printing is the script output
+]
 "src/pytest_peewee/__init__.py" = [
   "F401", # unused imports
 ]

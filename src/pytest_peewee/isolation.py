@@ -19,7 +19,7 @@ from typing import TYPE_CHECKING, Any, Literal, cast, override
 import peewee as pw
 import playhouse  # type: ignore[reportMissingTypeStubs]
 import pytest
-from peewee import query_to_string  # type: ignore
+from peewee import query_to_string
 
 from . import fmt
 
@@ -219,7 +219,7 @@ def isolate(database: RollbackDatabase, policy: IsolationPolicy = "strict") -> G
         txn = stack.enter_context(
             database.transaction()
             if outermost else
-            database.savepoint()
+            database.savepoint(),
         )
 
         @stack.callback  # runs before `txn` exits, which commits (or RELEASEs) it

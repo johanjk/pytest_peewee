@@ -72,7 +72,7 @@ def test_bad_query(database):
     assert_not_rewrapped(target.value)
     exp = 'SELECT "t1"."value" FROM (SELECT "t2"."id", "t2"."x" FROM "sometable" AS "t2") AS "t1"'
     if isinstance(database, pw.MySQLDatabase):
-        exp = exp.replace('"', '`')
+        exp = exp.replace('"', "`")
     assert f"peewee query: {exp}" in target.value.__notes__
 
 

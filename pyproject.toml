@@ -52,7 +52,7 @@ dev = [
 ]
 types = [
   "mypy>=1.0.0",
-  "pyright",
+  "pyright[nodejs]",
 ]
 dist = [
   "check-wheel-contents",

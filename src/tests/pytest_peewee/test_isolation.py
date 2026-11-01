@@ -124,9 +124,8 @@ def test_isolate_recovers_closed(sqlite_db):
 
 def test_commit_strict(sqlite_db):
     """COMMIT inside an isolated test is refused."""
-    with under_test(sqlite_db) as db, isolate(db, "strict"):
-        with pytest.raises(IsolationError, match="COMMIT"):
-            db.commit()
+    with under_test(sqlite_db) as db, isolate(db, "strict"), pytest.raises(IsolationError, match="COMMIT"):
+        db.commit()
 
 
 def test_commit_warn(sqlite_db):

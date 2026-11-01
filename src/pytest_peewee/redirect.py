@@ -123,7 +123,7 @@ def _redirected(redirect: Redirect, attr: str, *, none_to_active: bool, overlay:
         # objects created during a frame stay valid after it ends.
         frames = redirect.visible
         if overlay and frames and attr in obj.__dict__:
-            frames[-1].overlay[(id(obj), attr)] = (obj, value)
+            frames[-1].overlay[id(obj), attr] = (obj, value)
         else:
             obj.__dict__[attr] = value
 

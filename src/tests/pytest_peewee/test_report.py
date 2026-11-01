@@ -115,7 +115,10 @@ def test_agent_report_option(copy_testers, monkeypatch: pytest.MonkeyPatch):
 
 def test_invalid_report(copy_testers):
     """Bad 'peewee_report' values are a usage error."""
-    pytester = copy_testers({"pyproject.toml": "report/report_invalid.toml", "test_failed.py": "report/failed_query.py"})
+    pytester = copy_testers({
+        "pyproject.toml": "report/report_invalid.toml",
+        "test_failed.py": "report/failed_query.py",
+    })
     result = pytester.runpytest()
     assert result.ret == pytest.ExitCode.USAGE_ERROR
     assert "peewee_report must be one of" in result.stderr.str()
@@ -150,7 +153,10 @@ def test_output_gitignore(copy_testers):
 
 def test_output_option(copy_testers):
     """'peewee_output' sets the output folder."""
-    pytester = copy_testers({"pyproject.toml": "report/output_artifacts.toml", "test_failed.py": "report/failed_query.py"})
+    pytester = copy_testers({
+        "pyproject.toml": "report/output_artifacts.toml",
+        "test_failed.py": "report/failed_query.py",
+    })
     result = pytester.runpytest("--color=no")
     assert query_file(result, pytester.path).parent.parent == pytester.path / "artifacts/run-1"
 
@@ -163,7 +169,8 @@ def test_runs(copy_testers):
         (output / name).mkdir(parents=True)
     result = pytester.runpytest("--color=no")
     assert query_file(result, pytester.path).parent.parent == output / "run-11"
-    assert sorted(p.name for p in output.iterdir() if p.is_dir()) == ["run-10", "run-11", "run-2", "run-current", "trace"]
+    runs = sorted(p.name for p in output.iterdir() if p.is_dir())
+    assert runs == ["run-10", "run-11", "run-2", "run-current", "trace"]
     assert (output / "run-current").resolve() == output / "run-11"
 
 
