@@ -54,6 +54,7 @@ types = [
   "mypy>=1.0.0",
   "pyright[nodejs]",
   "ty>=0.0.95",
+  "types-pygments>=2.21.0.20260819",
 ]
 dist = [
   "check-wheel-contents",
@@ -156,6 +157,23 @@ init_forbid_extra = true
 init_typed = true
 warn_required_dynamic_aliases = true
 
+
+[tool.mypy]
+files = ["src/pytest_peewee"]
+exclude = ["src/pytest_peewee/version\\.py"]
+python_version = "3.14"
+strict = true
+warn_unused_ignores = true
+
+[[tool.mypy.overrides]]
+# peewee's stubs do not cover playhouse
+module = ["playhouse", "playhouse.*"]
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+# Overrides of untyped peewee methods call them via super()
+module = ["pytest_peewee._isolation"]
+disallow_untyped_calls = false
 
 [tool.ty.src]
 include = ["src/pytest_peewee"]

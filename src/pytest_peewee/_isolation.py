@@ -226,11 +226,12 @@ def isolate(database: RollbackDatabase, policy: IsolationPolicy = "strict") -> G
     outermost = database.transaction_depth() == 0
 
     with ExitStack() as stack:
-        txn = stack.enter_context(
+        txn: pw._transaction | pw._savepoint = (
             database.transaction()
             if outermost else
-            database.savepoint(),
+            database.savepoint()
         )
+        stack.enter_context(txn)
 
         @stack.callback  # runs before `txn` exits, which commits (or RELEASEs) it
         def rollback() -> None:
