@@ -82,6 +82,21 @@ def test_query_file_lint_positions(copy_testers):
     assert lines[line - 1][start - 1:end].replace("`", '"') == '"t"'  # the unknown table of the reference
 
 
+def test_lint_ignore(copy_testers):
+    """'peewee_lint_ignore' leaves rules out of the failure report, the query file and '.lint()'."""
+    pytester = copy_testers({
+        "pyproject.toml": "report/lint_ignore.toml",
+        "test_failed.py": "report/failed_lint_query.py",
+        "test_lint.py": "report/lint_ignored_query.py",
+    })
+    result = pytester.runpytest("--color=no")
+    result.assert_outcomes(passed=1, failed=1)
+
+    assert "RF01" not in result.stdout.str().split("peewee query call", 1)[1]
+    path = pytester.path / "test-results/run-1/test_failed.py-test_wrong_join/query.sql"
+    assert "RF01" not in path.read_text(encoding="utf-8")
+
+
 def test_agent_report(copy_testers, monkeypatch: pytest.MonkeyPatch):
     """For AI agents, the report is plain, without colors (also when asked for) and without a query file.
 

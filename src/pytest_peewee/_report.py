@@ -35,8 +35,17 @@ def report_style(config: pytest.Config) -> console.ReportStyle:
     return style
 
 
-def install_helpers(mp: pytest.MonkeyPatch, redirect: Redirect, style: console.ReportStyle) -> None:
+def lint_ignore(config: pytest.Config) -> tuple[str, ...]:
+    """The 'peewee_lint_ignore' ini option: sqlfluff rules left out when linting."""
+    return tuple(cast(list[str], config.getini("peewee_lint_ignore")))
+
+
+def install_helpers(
+    mp: pytest.MonkeyPatch, redirect: Redirect, style: console.ReportStyle, ignore: tuple[str, ...] = (),
+) -> None:
     """Add `.print()` and `.lint()` to peewee queries, printing in `style`, undone by `mp`.
+
+    `.lint()` leaves out the sqlfluff rules in `ignore`.
 
     Unbound queries use the active test database of `redirect`.
     """
@@ -48,7 +57,7 @@ def install_helpers(mp: pytest.MonkeyPatch, redirect: Redirect, style: console.R
         return db
 
     def lint(self: pw.Query, subtext: str | None = None) -> bool:
-        return console.print_lint(self, database_of(self), subtext, style=style)
+        return console.print_lint(self, database_of(self), subtext, ignore=ignore, style=style)
 
     def print_(self: pw.Query, subtext: str | None = None) -> None:
         console.print_query(self, database_of(self), subtext, style=style)
@@ -79,7 +88,7 @@ def write_query_file(  # ruff: ignore[PLR0913]
 
     The caller (full path), lint errors (by line and columns) and `subtext` are added as comments under the query.
     """
-    sql, warns = fmt.lint_query(query, database)
+    sql, warns = fmt.lint_query(query, database, lint_ignore(item.config))
     notes = [
         f"{code}: {description}"
         for code, description
@@ -144,7 +153,7 @@ def render_failed_query(
         caller_view = console.location_text(caller) if caller and not (agent and hidden) else None
         view = console.query_view(
             query, database, None if agent else _error_text(exc), caller_view,
-            lint=True, positions=not tw.hasmarkup, style=style,
+            lint=True, ignore=lint_ignore(item.config), positions=not tw.hasmarkup, style=style,
         )
         out.print(view)
         rendered = True

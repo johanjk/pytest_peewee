@@ -9,7 +9,7 @@ from .._console import agent
 from .._frames import traceback_style
 from .._redirect import Redirect
 from .._redirect import install as install_redirect
-from .._report import install_helpers, report_style
+from .._report import install_helpers, lint_ignore, report_style
 
 type ScopeName = Literal["session", "package", "module"]
 type UnavailablePolicy = Literal["xfail", "skip", "fail"]
@@ -43,6 +43,12 @@ def pytest_addoption(parser: pytest.Parser) -> None:
         default="short",
     )
     parser.addini(
+        "peewee_lint_ignore",
+        "Sqlfluff rules (codes or names) left out when linting, in .lint() and failure reports.",
+        type="linelist",
+        default=[],
+    )
+    parser.addini(
         "peewee_output",
         "Folder for failure artifacts (failed queries as .sql files), relative to the rootdir.",
         default="test-results",
@@ -73,7 +79,7 @@ def pytest_configure(config: pytest.Config) -> None:
     mp = pytest.MonkeyPatch()
     config.add_cleanup(mp.undo)
     config.stash[REDIRECT] = install_redirect(mp)
-    install_helpers(mp, config.stash[REDIRECT], style)
+    install_helpers(mp, config.stash[REDIRECT], style, lint_ignore(config))
 
 
 @pytest.hookimpl(wrapper=True)

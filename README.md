@@ -183,6 +183,7 @@ peewee_unavailable = "xfail" # database unavailable or misconfigured: xfail, ski
 peewee_report = "framed"     # failed queries, .print() and .lint(): framed, or plain (no panel or line numbers)
 peewee_output = "test-results" # failure artifacts (failed queries as .sql files), relative to the rootdir
 peewee_traceback = "short"   # tracebacks of failed queries: short (without peewee and driver frames) or full
+peewee_lint_ignore = []      # sqlfluff rules (codes or names) left out of .lint() and failure reports, e.g. ["AM04"]
 ```
 
 Use `peewee_report = "plain"` (or `-o peewee_report=plain`) to copy queries from the terminal;

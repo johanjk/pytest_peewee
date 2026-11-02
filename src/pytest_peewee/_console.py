@@ -184,14 +184,16 @@ def query_view(  # ruff: ignore[PLR0913]
     caller: Text | None = None,
     *,
     lint: bool = False,
+    ignore: tuple[str, ...] = (),
     positions: bool = False,
     style: ReportStyle = "framed",
 ) -> RenderableType:
     """Formatted and highlighted query, with `caller`, linting errors (when `lint`) and `subtext` under it.
 
-    With `positions`, the linting errors start with their span in the query, e.g. `L7:9-11`.
+    Lint rules in `ignore` are left out. With `positions`, the linting errors start with their span
+    in the query, e.g. `L7:9-11`.
     """
-    sql, warns = fmt.lint_query(query, database) if lint else (fmt.render(query, database), [])
+    sql, warns = fmt.lint_query(query, database, ignore) if lint else (fmt.render(query, database), [])
     syntax = highlight(sql, dialect(database), style)
     highlight_lint(syntax, warns)
 
@@ -215,16 +217,24 @@ def print_query(
 
 
 def print_lint(
-    query: pw.Query, database: pw.Database, subtext: str | None = None, *, style: ReportStyle = "framed",
+    query: pw.Query,
+    database: pw.Database,
+    subtext: str | None = None,
+    *,
+    ignore: tuple[str, ...] = (),
+    style: ReportStyle = "framed",
 ) -> bool:
-    """Pretty print a query with its linting errors, if any.
+    """Pretty print a query with its linting errors, if any, leaving out the lint rules in `ignore`.
 
     Returns:
         True if linting found no problems.
     """
-    _, warns = fmt.lint_query(query, database)
+    _, warns = fmt.lint_query(query, database, ignore)
     if not warns:
         return True
     out = console(style)
-    out.print(query_view(query, database, subtext, caller_info(), lint=True, positions=not colored(out), style=style))
+    view = query_view(
+        query, database, subtext, caller_info(), lint=True, ignore=ignore, positions=not colored(out), style=style,
+    )
+    out.print(view)
     return False

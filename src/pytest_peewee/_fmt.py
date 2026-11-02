@@ -73,14 +73,16 @@ class LintInfo(TypedDict):
     fixes: list[dict[str, Any]]
 
 
-def lint_query(query: pw.Query, database: pw.Database) -> tuple[str, list[LintInfo]]:
-    """Wrapper linting executed query."""
+def lint_query(
+    query: pw.Query, database: pw.Database, ignore: tuple[str, ...] = (),
+) -> tuple[str, list[LintInfo]]:
+    """Wrapper linting executed query, also ignoring the sqlfluff rules in `ignore`."""
     s = render(query, database)
-    return s, _lint(s, dialect(database))
+    return s, _lint(s, dialect(database), ignore)
 
 
 @functools.lru_cache(maxsize=256)
-def _lint(sql: str, dialect: str | None) -> list[LintInfo]:
+def _lint(sql: str, dialect: str | None, ignore: tuple[str, ...]) -> list[LintInfo]:
     # the failure report lints the same query for its panel and its .sql file
     f = sqlfluff.lint(
         sql,
@@ -97,6 +99,7 @@ def _lint(sql: str, dialect: str | None) -> list[LintInfo]:
             "LT12",  # Newline at end
             "RF06",  # Quoted identifier
             "CV04",  # Peewee prefers COUNT(1) over COUNT(*)
+            *ignore,
         ],
     )
     return cast(list[LintInfo], f)  # ty: ignore[disjoint-cast]
