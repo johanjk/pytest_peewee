@@ -1,6 +1,7 @@
 """pytest-peewee: pytest extensions for peewee."""
 
 from ._isolation import IsolationError, IsolationPolicy, IsolationWarning, RollbackDatabase
+from ._output import pytest_configure_node
 from ._plugin import (
     cockroach,
     database,

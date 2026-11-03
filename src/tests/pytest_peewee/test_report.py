@@ -211,6 +211,16 @@ def test_parametrized_query_files(copy_testers):
     assert ["'a b'" in f.read_text(encoding="utf-8") for f in files].count(True) == 1
 
 
+def test_xdist_shares_run(copy_testers):
+    """pytest-xdist workers write to one run folder, made by the controller."""
+    pytester = copy_testers({"test_failed.py": "report/failed_param_query.py"})
+    pytester.runpytest_subprocess("-n", "2", "--color=no").assert_outcomes(failed=2)
+
+    output = pytester.path / "test-results"
+    assert sorted(p.name for p in output.iterdir() if p.is_dir()) == ["run-1", "run-current"]
+    assert len(list((output / "run-1").glob("*/query.sql"))) == 2
+
+
 def test_nested_session_restores_helpers(copy_testers):
     """A nested session (pytester) leaves the outer session's helpers and redirect in place."""
     patched = (pw.Query.print, pw.Context.lint, pw.Metadata.__dict__["database"])

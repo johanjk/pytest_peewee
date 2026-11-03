@@ -41,6 +41,7 @@ dependencies = [
 test = [
   "coverage[toml]>=6.5",
   "mktestdocs",
+  "pytest-xdist>=3.8.0",
 ]
 dev = [
   "psycopg",

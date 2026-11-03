@@ -3,12 +3,10 @@
 import re
 import shutil
 from contextlib import suppress
-from typing import TYPE_CHECKING, cast
+from pathlib import Path
+from typing import Any, cast
 
 import pytest
-
-if TYPE_CHECKING:
-    from pathlib import Path
 
 
 def output_dir(config: pytest.Config) -> Path:
@@ -18,16 +16,21 @@ def output_dir(config: pytest.Config) -> Path:
 
 _RUN = re.compile(r"run-(\d+)")
 _KEEP_RUNS = 3  # as pytest keeps its base temp dirs
-_run_dir = pytest.StashKey["Path"]()
+_run_dir = pytest.StashKey[Path]()
+_WORKER_RUN_DIR = "peewee_run_dir"
+"""Key of the controller's run folder in the `workerinput` of pytest-xdist workers."""
 
 
 def run_dir(config: pytest.Config) -> Path:
     """This run's `<output>/run-<N>` folder, made on first use; older runs beyond the last 3 are removed.
 
-    `<output>/run-current` links to it.
+    `<output>/run-current` links to it. pytest-xdist workers use the folder of their controller.
 
     Other content of the output folder is kept. The output folder ignores itself in git.
     """
+    workerinput: dict[str, Any] = getattr(config, "workerinput", {})
+    if _run_dir not in config.stash and _WORKER_RUN_DIR in workerinput:
+        config.stash[_run_dir] = Path(workerinput[_WORKER_RUN_DIR])
     if _run_dir not in config.stash:
         output = output_dir(config)
         output.mkdir(parents=True, exist_ok=True)
@@ -49,3 +52,9 @@ def run_dir(config: pytest.Config) -> Path:
             shutil.rmtree(old, ignore_errors=True)
         config.stash[_run_dir] = path
     return config.stash[_run_dir]
+
+
+@pytest.hookimpl(optionalhook=True)
+def pytest_configure_node(node: Any) -> None:
+    """pytest-xdist: make the run folder once, in the controller, for its workers to share."""
+    node.workerinput[_WORKER_RUN_DIR] = str(run_dir(node.config))
