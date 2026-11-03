@@ -53,12 +53,16 @@ class HostSpec(BaseModel):
         if self.host and self.host.startswith("/"):
             msg = "unix socket hosts are not supported in urls, override 'setup_database' to pass them"
             raise ValueError(msg)
+        if self.host and self.host.startswith("[") != self.host.endswith("]"):
+            msg = f"'host' has unbalanced brackets: {self.host!r}"
+            raise ValueError(msg)
         return self
 
     @override
     def __str__(self) -> str:
-        """Host as is, urlparse does not decode it; IPv6 in brackets."""
-        host = f"[{self.host}]" if self.host and ":" in self.host else self.host
+        """Host as is, urlparse does not decode it; IPv6 in brackets, unless given in them."""
+        bare_ipv6 = self.host and ":" in self.host and not self.host.startswith("[")  # brackets are balanced
+        host = f"[{self.host}]" if bare_ipv6 else self.host
         return "".join(filter(None, [host, f":{self.port}" if self.port else None]))
 
 

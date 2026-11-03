@@ -56,11 +56,12 @@ def test_credentials(cred):
 
 @pytest.mark.parametrize(("conn", "expected"), [
     (HostSpec(host="::1", port=5432), {"host": "::1", "port": 5432}),
+    (HostSpec(host="[::1]", port=5432), {"host": "::1", "port": 5432}),
     (HostSpec(host=None, port=5432), {"port": 5432}),
     (HostSpec(host="h", port=None), {"host": "h"}),
 ])
 def test_host(conn, expected):
-    """IPv6 hosts are bracketed, host and port are each optional."""
+    """IPv6 hosts are bracketed, unless given in brackets; host and port are each optional."""
     assert roundtrip(conn=conn) == {"database": "d"} | expected
 
 
@@ -68,6 +69,8 @@ def test_host(conn, expected):
     lambda: UserSpec(user="", password="secret"),
     lambda: HostSpec(host=None, port=None),
     lambda: HostSpec(host="/var/run/postgresql", port=None),
+    lambda: HostSpec(host="[::1", port=None),
+    lambda: HostSpec(host="::1]", port=None),
     lambda: Database(dbtype="postgresql", conn=None, database="we?ird", cred=None),
     lambda: Database(dbtype="postgresql", conn=None, database="we#ird", cred=None),
 ])
