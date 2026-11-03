@@ -3,7 +3,7 @@
 `under_test` swaps the database's class for a subclass mixing in
 `RollbackDatabase`, which keeps the shared connection open, attaches failed
 queries to their exceptions for the failure report, and guards the isolation
-transaction against commits. MySQL databases get `MySQLRollbackDatabase`, which
+transaction against commits, rollbacks and transaction statements. MySQL databases get `MySQLRollbackDatabase`, which
 also guards against statements implicitly committing.
 """
 
@@ -57,21 +57,48 @@ def failed_query(error: BaseException) -> BaseException | None:
     return next((exc for exc in exception_chain(error) if hasattr(exc, FAILED_QUERY)), None)
 
 
+# Whitespace and comments before a statement; not MySQL's executable `/*! ... */` comments.
+_LEADING = re.compile(r"(?:\s+|--[^\n]*|#[^\n]*|/\*(?!!).*?\*/)*", re.DOTALL)
+
+# Statements ending the test transaction on any database; savepoint rollbacks keep it.
+_TRANSACTION_CONTROL = re.compile(
+    r"""(?:
+        COMMIT | END | ABORT | BEGIN
+        | ROLLBACK(?!\s+(?:WORK\s+)?TO\b)
+        | START\s+TRANSACTION
+    )\b""",
+    re.IGNORECASE | re.VERBOSE,
+)
+
 # MySQL/MariaDB statements causing an implicit commit, ending the test transaction.
 # https://dev.mysql.com/doc/refman/8.4/en/implicit-commit.html
 _IMPLICIT_COMMIT = re.compile(
-    r"""^\s*(?:
+    r"""(?:
         (?:CREATE|DROP)\s+(?!TEMPORARY\b)
-        | (?:ALTER|TRUNCATE|RENAME|LOCK|UNLOCK|GRANT|REVOKE|ANALYZE|OPTIMIZE|REPAIR|BEGIN)\b
-        | START\s+TRANSACTION\b
+        | (?:ALTER|TRUNCATE|RENAME|LOCK|UNLOCK|GRANT|REVOKE|ANALYZE|OPTIMIZE|REPAIR|BEGIN|FLUSH|INSTALL|UNINSTALL)\b
+        | RESET\s+(?!PERSIST\b)
+        | (?:START\s+TRANSACTION|CHECK\s+TABLE|CACHE\s+INDEX|LOAD\s+INDEX|SET\s+PASSWORD)\b
+        | (?:START|STOP)\s+(?:REPLICA|SLAVE)\b
+        | CHANGE\s+(?:REPLICATION|MASTER)\b
+        | SET\s+(?:SESSION\s+|LOCAL\s+|@@(?:SESSION\.|LOCAL\.)?)?autocommit\s*=\s*(?:1|ON|TRUE)\b
     )""",
     re.IGNORECASE | re.VERBOSE,
 )
 
 
+def _statement(sql: str) -> str:
+    """`sql` without the whitespace and comments before it."""
+    return _LEADING.sub("", sql, count=1)
+
+
+def transaction_control(sql: str) -> bool:
+    """Whether `sql` commits, rolls back or begins a transaction (not a savepoint)."""
+    return _TRANSACTION_CONTROL.match(_statement(sql)) is not None
+
+
 def implicit_commit(sql: str) -> bool:
     """Whether MySQL implicitly commits when executing `sql`."""
-    return _IMPLICIT_COMMIT.match(sql) is not None
+    return _IMPLICIT_COMMIT.match(_statement(sql)) is not None
 
 
 class IsolationError(Exception):
@@ -131,6 +158,44 @@ class RollbackDatabase(pw.Database):
                 return None
         return super().commit()
 
+    @override
+    def rollback(self) -> None:
+        """Roll back, unless it would roll back the isolation transaction; see `peewee_isolation`."""
+        if self._ppw_isolated and self.in_transaction():
+            reason = "ROLLBACK inside a test would roll back the isolation transaction, fixture data included."
+            if self._ppw_breach(reason, "ROLLBACK", skip_on_warn=True):
+                return None
+        return super().rollback()
+
+    @override
+    def begin(self, *args: Any, **kwargs: Any) -> None:
+        """Begin, unless the isolation transaction is still open: BEGIN would fail, or (MySQL) commit it.
+
+        With 'warn' it is skipped silently: a COMMIT or ROLLBACK before it (e.g. `transaction().commit()`)
+        was skipped and warned about, which left the isolation transaction open.
+        """
+        if self._ppw_isolated and self.in_transaction():
+            if self._ppw_policy == "warn":
+                return None
+            reason = "BEGIN inside a test would end the isolation transaction."
+            if self._ppw_breach(reason, "BEGIN", skip_on_warn=True):
+                return None
+        return super().begin(*args, **kwargs)
+
+    def _ppw_breaking(self, sql: str) -> str | None:  # ruff: ignore[PLR6301] - overridden by MySQLRollbackDatabase
+        """Why executing `sql` would end the isolation transaction, if it would."""
+        if transaction_control(sql):
+            return "Transaction statements inside a test end the isolation transaction; use 'database.atomic()'."
+        return None
+
+    @override
+    def execute_sql(self, sql: str, params: Any = None, *args: Any, **kwargs: Any) -> Any:
+        """Execute `sql`, unless it would end the isolation transaction."""
+        __tracebackhide__ = True
+        if self._ppw_isolated and self.in_transaction() and (reason := self._ppw_breaking(sql)):
+            self._ppw_breach(reason, sql, skip_on_warn=False)
+        return super().execute_sql(sql, params, *args, **kwargs)
+
     def _ppw_breach(self, reason: str, sql: str, *, skip_on_warn: bool) -> bool:
         """Apply the isolation policy.
 
@@ -169,18 +234,17 @@ class MySQLRollbackDatabase(RollbackDatabase, pw.MySQLDatabase):
     """MySQL/MariaDB database owned by a test, refusing implicitly committing statements."""
 
     @override
-    def execute_sql(self, sql: str, params: Any = None, *args: Any, **kwargs: Any) -> Any:
-        """Execute `sql`, unless MySQL would implicitly commit the isolation transaction."""
-        __tracebackhide__ = True
-        if self._ppw_isolated and self.in_transaction() and implicit_commit(sql):
-            self._ppw_breach(
+    def _ppw_breaking(self, sql: str) -> str | None:
+        """Why executing `sql` would end the isolation transaction, also by MySQL implicitly committing."""
+        if reason := super()._ppw_breaking(sql):
+            return reason
+        if implicit_commit(sql):
+            return (
                 "MySQL implicitly commits on this statement; the test transaction would end and "
                 "everything after it in this test would be committed. Create tables once via the "
-                "'database_models' fixture, or use 'create_table(temporary=True)'.",
-                sql,
-                skip_on_warn=False,
+                "'database_models' fixture, or use 'create_table(temporary=True)'."
             )
-        return super().execute_sql(sql, params, *args, **kwargs)
+        return None
 
 
 @cache  # one subclass per database class; stateless, the state is on the instance

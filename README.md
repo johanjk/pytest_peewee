@@ -10,7 +10,7 @@ Extensions for the Python SQL ORM [Peewee](https://github.com/coleifer/peewee/).
 * Tables are created once, and all database operations are rolled back after each test.
 * Failed queries are formatted, linted and shown in the failure report of the test.
 * Any query can be easily printed using [rich](https://github.com/Textualize/rich) or linted with [sqlfluff](https://github.com/sqlfluff/sqlfluff).
-* Statements that would break test isolation (`COMMIT`, DDL on MySQL) are refused with a clear error.
+* Statements that would break test isolation (`COMMIT`, `ROLLBACK`, DDL on MySQL) are refused with a clear error.
 * Supports `postgres`, `sqlite` and `mysql`.
 
 ## Example
@@ -167,7 +167,8 @@ def test_table_debug_typed(database):
 
 ### Test isolation
 
-* `database.commit()` inside a test would commit the isolation transaction, and raises `IsolationError`.
+* `database.commit()` and `database.rollback()` inside a test would end the isolation transaction, and raise
+  `IsolationError`; so do raw `COMMIT`, `ROLLBACK` and `BEGIN` statements. Use `database.atomic()` (a savepoint) instead.
 * MySQL/MariaDB implicitly commit on DDL (`CREATE TABLE`, `ALTER`, `DROP`, `TRUNCATE`, ...), which would end the
   test transaction. Such statements raise `IsolationError` inside tests. Create tables via `database_models`, or use
   `Model.create_table(temporary=True)` for tables only one test needs (temporary tables do not commit).
@@ -177,7 +178,7 @@ Configure with ini options:
 
 ```toml
 [tool.pytest]
-peewee_isolation = "strict"  # strict (error), warn (skip COMMIT / allow DDL with a warning) or off
+peewee_isolation = "strict"  # strict (error), warn (skip COMMIT/ROLLBACK / allow statements with a warning) or off
 peewee_scope = "module"      # scope of the connection and schema: session, package or module
 peewee_unavailable = "xfail" # database unavailable or misconfigured: xfail, skip or fail
 peewee_report = "framed"     # failed queries, .print() and .lint(): framed, or plain (no panel or line numbers)

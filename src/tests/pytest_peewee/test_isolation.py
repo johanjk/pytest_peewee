@@ -7,6 +7,7 @@ from pytest_peewee._isolation import (
     MySQLRollbackDatabase,
     implicit_commit,
     isolate,
+    transaction_control,
     under_test,
 )
 
@@ -48,6 +49,18 @@ def assert_not_rewrapped(err: BaseException):
     ("RENAME TABLE t TO u", True),
     ("LOCK TABLES t WRITE", True),
     ("START TRANSACTION", True),
+    ("/* migrate */ ALTER TABLE t ADD y INT", True),
+    ("-- drop\n  # it\nDROP TABLE t", True),
+    ("FLUSH TABLES", True),
+    ("RESET MASTER", True),
+    ("CHECK TABLE t", True),
+    ("CACHE INDEX t IN c", True),
+    ("LOAD INDEX INTO CACHE t", True),
+    ("SET autocommit=1", True),
+    ("set @@session.autocommit = ON", True),
+    ("SET autocommit = 0", False),
+    ("RESET PERSIST", False),
+    ("/*!50001 SELECT 1 */", False),
     ("CREATE TEMPORARY TABLE t (x INT)", False),
     ("DROP TEMPORARY TABLE t", False),
     ("SELECT 1", False),
@@ -59,6 +72,25 @@ def assert_not_rewrapped(err: BaseException):
 def test_implicit_commit(sql, commits):
     """MySQL implicit commit detection."""
     assert implicit_commit(sql) is commits
+
+
+@pytest.mark.parametrize(("sql", "ends"), [
+    ("COMMIT", True),
+    ("  rollback", True),
+    ("/* done */ ROLLBACK WORK", True),
+    ("BEGIN", True),
+    ("BEGIN IMMEDIATE", True),
+    ("START TRANSACTION", True),
+    ("END", True),
+    ("ROLLBACK TO SAVEPOINT s1", False),
+    ("ROLLBACK WORK TO s1", False),
+    ("SAVEPOINT s1", False),
+    ("RELEASE SAVEPOINT s1", False),
+    ("SELECT 1", False),
+])
+def test_transaction_control(sql, ends):
+    """Transaction statements are told apart from savepoint ones."""
+    assert transaction_control(sql) is ends
 
 
 def test_class_swap_restored(sqlite_db):
@@ -147,6 +179,69 @@ def test_commit_off(sqlite_db):
             db.commit()
             db.begin()  # keep the rollback valid
         assert count(db) == 1
+
+
+def test_rollback_strict(sqlite_db):
+    """ROLLBACK inside an isolated test is refused, also through a nested transaction."""
+    with under_test(sqlite_db) as db, isolate(db, "strict"):
+        with pytest.raises(IsolationError, match="ROLLBACK"):
+            db.rollback()
+        with db.transaction() as txn, pytest.raises(IsolationError, match="ROLLBACK"):
+            txn.rollback()
+
+
+def test_rollback_warn(sqlite_db):
+    """With 'warn' the ROLLBACK is skipped, so later writes are still rolled back after the test."""
+    with under_test(sqlite_db) as db:
+        with isolate(db, "warn"):
+            Row.create(x=1)
+            with pytest.warns(IsolationWarning, match="ROLLBACK"):
+                db.rollback()
+            assert count(db) == 1
+            Row.create(x=2)
+        assert count(db) == 0
+
+
+def test_transaction_commit_warn(sqlite_db):
+    """With 'warn' a nested transaction's commit is skipped, and so is the BEGIN peewee follows it with."""
+    with under_test(sqlite_db) as db:
+        with isolate(db, "warn"), db.transaction() as txn:
+            Row.create(x=1)
+            with pytest.warns(IsolationWarning, match="COMMIT") as record:
+                txn.commit()
+            assert len(record) == 1
+            Row.create(x=2)
+        assert count(db) == 0
+
+
+def test_begin_strict(sqlite_db):
+    """BEGIN inside an isolated test is refused."""
+    with under_test(sqlite_db) as db, isolate(db, "strict"), pytest.raises(IsolationError, match="BEGIN"):
+        db.begin()
+
+
+@pytest.mark.parametrize("sql", ["COMMIT", "/* raw */ rollback", "BEGIN"])
+def test_raw_transaction_statements(sqlite_db, sql):
+    """Raw transaction statements inside an isolated test are refused."""
+    with under_test(sqlite_db) as db:
+        with isolate(db, "strict"):
+            Row.create(x=1)
+            with pytest.raises(IsolationError, match="Transaction statements"):
+                db.execute_sql(sql)
+        assert count(db) == 0
+
+
+def test_atomic_rollback(sqlite_db):
+    """Savepoints (`atomic`) still roll back inside an isolated test."""
+    def duplicate(db: pw.Database) -> None:
+        with db.atomic():
+            Row.create(x=1)
+            Row.create(x=1)
+
+    with under_test(sqlite_db) as db, isolate(db, "strict"):
+        with pytest.raises(pw.IntegrityError):
+            duplicate(db)
+        assert count(db) == 0
 
 
 def test_commit_outside_isolation(sqlite_db):
