@@ -93,10 +93,10 @@ def _lint(sql: str, dialect: str | None, ignore: tuple[str, ...]) -> list[LintIn
             "ST06",  # Column order
             "ST07",  # USING
             "ST08",  # Distinct brackets
-            "LT05",  # Line too long
-            "LT09",  # Select targets should be on a new line
+            # Layout is pytest-peewee's own: peewee writes a query on one line and _fix lays it out, stopping
+            # where sqlfluff's fix loop does, so layout findings say nothing about the query.
+            "layout",
             "CP01",  # Capitalization
-            "LT12",  # Newline at end
             "RF06",  # Quoted identifier
             "CV04",  # Peewee prefers COUNT(1) over COUNT(*)
             *ignore,
