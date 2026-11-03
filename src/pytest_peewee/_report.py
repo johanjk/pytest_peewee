@@ -1,5 +1,6 @@
 """Query debug helpers and failure reports."""
 
+import hashlib
 import io
 import re
 from collections.abc import Generator
@@ -68,6 +69,21 @@ def install_helpers(
             mp.setattr(cls, name, func, raising=False)
 
 
+_PLAIN_NODEID = re.compile(r"[\w.]+(?:(?:/|::)[\w.]+)*")
+"""Test ids of only path and name parts, which their folder name tells apart."""
+
+
+def query_folder(nodeid: str) -> str:
+    """Folder name of the test `nodeid`: its words joined by '-', and a hash of it unless it is plain.
+
+    Other ids would share a folder, e.g. the parametrized `test_q[a b]` and `test_q[a-b]`.
+    """
+    name = re.sub(r"[^\w.]+", "-", nodeid).strip("-")
+    if _PLAIN_NODEID.fullmatch(nodeid):
+        return name
+    return f"{name}-{hashlib.blake2b(nodeid.encode(), digest_size=4).hexdigest()}"
+
+
 def _comment(text: str) -> str:
     return "\n".join(f"-- {line}".rstrip() for line in text.splitlines())
 
@@ -95,7 +111,7 @@ def write_query_file(  # ruff: ignore[PLR0913]
         notes.insert(0, f"Called from: {caller[0]}:{caller[1]}")
     comments = "\n".join(_comment(note) for note in [*notes, subtext])
 
-    folder = run_dir(item.config) / re.sub(r"[^\w.]+", "-", item.nodeid).strip("-")
+    folder = run_dir(item.config) / query_folder(item.nodeid)
     folder.mkdir(exist_ok=True)
     path = folder / ("query.sql" if when == "call" else f"query-{when}.sql")
     path.write_text(f"{sql.rstrip()}\n\n{comments}\n", encoding="utf-8")

@@ -5,6 +5,8 @@ import peewee as pw
 import pytest
 from rich.text import Text
 
+from pytest_peewee._report import query_folder
+
 if TYPE_CHECKING:
     from pathlib import Path
 
@@ -187,6 +189,26 @@ def test_runs(copy_testers):
     runs = sorted(p.name for p in output.iterdir() if p.is_dir())
     assert runs == ["run-10", "run-11", "run-2", "run-current", "trace"]
     assert (output / "run-current").resolve() == output / "run-11"
+
+
+@pytest.mark.parametrize(("nodeid", "pattern"), [
+    ("test_a.py::test_a", r"test_a\.py-test_a"),
+    ("dir/test_a.py::TestA::test_a", r"dir-test_a\.py-TestA-test_a"),
+    ("test_a.py::test_a[a b]", r"test_a\.py-test_a-a-b-[0-9a-f]{8}"),
+])
+def test_query_folder(nodeid: str, pattern: str):
+    """Plain test ids keep their name; others get a hash of the id too."""
+    assert re.fullmatch(pattern, query_folder(nodeid))
+
+
+def test_parametrized_query_files(copy_testers):
+    """Parametrized tests whose ids clean up to the same name each keep their own query file."""
+    pytester = copy_testers({"test_failed.py": "report/failed_param_query.py"})
+    pytester.runpytest("--color=no").assert_outcomes(failed=2)
+
+    files = sorted((pytester.path / "test-results/run-1").glob("*/query.sql"))
+    assert len(files) == 2
+    assert ["'a b'" in f.read_text(encoding="utf-8") for f in files].count(True) == 1
 
 
 def test_nested_session_restores_helpers(copy_testers):
