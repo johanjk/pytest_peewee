@@ -2,11 +2,12 @@
 
 from collections.abc import Iterator
 from contextlib import ExitStack, contextmanager
-from typing import TYPE_CHECKING, cast
+from typing import TYPE_CHECKING
 
 import peewee as pw
 import pytest
 
+from .._ini import ini_choice
 from .._isolation import POLICIES, IsolationPolicy, RollbackDatabase, isolate, under_test
 from .._redirect import DatabaseMap
 from .hooks import REDIRECT, scope
@@ -35,11 +36,7 @@ def database_models() -> Iterator[list[type[pw.Model]]]:
 @pytest.fixture(scope=scope)
 def database_isolation(pytestconfig: pytest.Config) -> Iterator[IsolationPolicy]:
     """Policy for statements breaking test isolation, from the 'peewee_isolation' ini option."""
-    value = cast(str, pytestconfig.getini("peewee_isolation"))
-    if value not in POLICIES:
-        msg = f"peewee_isolation must be one of {POLICIES}, got {value!r}"
-        raise pytest.UsageError(msg)
-    yield value
+    yield ini_choice(pytestconfig, "peewee_isolation", POLICIES)
 
 
 @pytest.fixture(scope=scope)

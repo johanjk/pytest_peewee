@@ -15,6 +15,7 @@ from rich.text import Text
 from . import _console as console
 from . import _fmt as fmt
 from . import _frames as frames
+from ._ini import ini_choice
 from ._isolation import FAILED_QUERY, failed_query
 from ._output import run_dir
 
@@ -26,13 +27,9 @@ if TYPE_CHECKING:
 
 def report_style(config: pytest.Config) -> console.ReportStyle:
     """The 'peewee_report' ini option; when unset, plain for AI agents and framed otherwise."""
-    style = cast(str | None, config.getini("peewee_report"))
-    if style is None:
+    if config.getini("peewee_report") is None:
         return "plain" if console.agent() else "framed"
-    if style not in console.REPORT_STYLES:
-        msg = f"peewee_report must be one of {console.REPORT_STYLES}, got {style!r}"
-        raise pytest.UsageError(msg)
-    return style
+    return ini_choice(config, "peewee_report", console.REPORT_STYLES)
 
 
 def lint_ignore(config: pytest.Config) -> tuple[str, ...]:

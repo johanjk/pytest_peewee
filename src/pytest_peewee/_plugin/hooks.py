@@ -1,18 +1,21 @@
 """Plugin hooks: ini options, and the global patches of a pytest session."""
 
 from collections.abc import Generator
-from typing import Literal, cast, get_args
+from typing import Literal
 
 import pytest
 
 from .._console import agent
 from .._frames import traceback_style
+from .._ini import ini_choice
 from .._redirect import Redirect
 from .._redirect import install as install_redirect
 from .._report import install_helpers, lint_ignore, report_style
 
 type ScopeName = Literal["session", "package", "module"]
 type UnavailablePolicy = Literal["xfail", "skip", "fail"]
+SCOPES: tuple[ScopeName, ...] = ("session", "package", "module")
+UNAVAILABLE_POLICIES: tuple[UnavailablePolicy, ...] = ("xfail", "skip", "fail")
 
 
 REDIRECT = pytest.StashKey[Redirect]()
@@ -69,10 +72,7 @@ def pytest_configure(config: pytest.Config) -> None:
     """
     if agent():
         config.option.color = "no"
-    value = config.getini("peewee_unavailable")
-    if value not in get_args(UnavailablePolicy.__value__):
-        msg = f"peewee_unavailable must be one of {get_args(UnavailablePolicy.__value__)}, got {value!r}"
-        raise pytest.UsageError(msg)
+    ini_choice(config, "peewee_unavailable", UNAVAILABLE_POLICIES)
     style = report_style(config)
     traceback_style(config)  # validate
 
@@ -95,8 +95,4 @@ def scope(fixture_name: str, config: pytest.Config) -> ScopeName:  # ruff: ignor
 
     Use it when overriding those fixtures: `@pytest.fixture(scope=pytest_peewee.scope)`.
     """
-    value = config.getini("peewee_scope")
-    if value not in get_args(ScopeName.__value__):
-        msg = f"peewee_scope must be one of {get_args(ScopeName.__value__)}, got {value!r}"
-        raise pytest.UsageError(msg)
-    return cast(ScopeName, value)
+    return ini_choice(config, "peewee_scope", SCOPES)

@@ -4,11 +4,12 @@ import site
 import sys
 from contextlib import contextmanager
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Literal, cast, get_args
+from typing import TYPE_CHECKING, Any, Literal
 
 import pytest
 
 from . import _console as console
+from ._ini import ini_choice
 from ._isolation import exception_chain, failed_query
 
 if TYPE_CHECKING:
@@ -17,15 +18,13 @@ if TYPE_CHECKING:
     from _pytest._code import Traceback
 
 type TracebackStyle = Literal["short", "full"]
+TRACEBACK_STYLES: tuple[TracebackStyle, ...] = ("short", "full")
 
 
 def traceback_style(config: pytest.Config) -> TracebackStyle:
     """The 'peewee_traceback' ini option; full with `--fulltrace`."""
-    style = config.getini("peewee_traceback")
-    if style not in get_args(TracebackStyle.__value__):
-        msg = f"peewee_traceback must be one of {get_args(TracebackStyle.__value__)}, got {style!r}"
-        raise pytest.UsageError(msg)
-    return "full" if config.getoption("fulltrace", default=False) else cast(TracebackStyle, style)
+    style: TracebackStyle = ini_choice(config, "peewee_traceback", TRACEBACK_STYLES)
+    return "full" if config.getoption("fulltrace", default=False) else style
 
 
 _SITE = tuple(Path(p) for p in (*site.getsitepackages(), site.getusersitepackages()))
